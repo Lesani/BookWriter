@@ -1,3 +1,4 @@
 ollama
 colorama
 psycopg2-binary
+tqdm

@@ -1,4 +1,5 @@
 import logging
+from tqdm import tqdm  # Correctly import the tqdm function
 import ollama  # Uses the Ollama Python library (pip install ollama)
 from config import MODELS
 from colorama import Style
@@ -23,7 +24,56 @@ class BaseAgent:
         self.log(f"Generated prompt: {prompt}")
         return prompt
 
+    def download_model_with_progress(self, model_name):
+        client = ollama.Client()
+        
+        progress_bar = None  # Initialize progress bar
+        
+        for response in client.pull(model_name, stream=True):
+            if response.total and response.completed:
+                percentage = (response.completed / response.total) * 100
+                
+                # Initialize progress bar if it's the first response
+                if progress_bar is None:
+                    progress_bar = tqdm(total=response.total, unit="B", unit_scale=True)
+                
+                # Update progress bar
+                progress_bar.update(response.completed - progress_bar.n)
+
+            else:
+                print(f"{response.status}", end="\r")  # Overwrite the same line
+            
+        if progress_bar:
+            progress_bar.close()  # Close progress bar when done
+
+    def check_and_pull_model(self):
+        try:
+            # Retrieve available models
+            available_models_response = ollama.list()
+            available_models = available_models_response.models  # Extract the list of models
+
+            self.log(f"Raw available models data: {available_models}")
+
+            # Ensure we're working with correct attribute names
+            available_model_names = [model.model.lower() for model in available_models]
+            target_model = self.model.lower()
+
+            self.log(f"Available models: {available_model_names}")
+            self.log(f"Checking if model '{self.model}' is available...")
+
+            if target_model not in available_model_names and f"{target_model}:latest" not in available_model_names:
+                print(f"Model '{self.model}' not found. Pulling model...")
+                self.download_model_with_progress(self.model)
+                print(f"Model '{self.model}' pulled successfully.")
+            else:
+                self.log(f"Model '{self.model}' is already available.")
+        except Exception as e:
+            self.logger.error(f"Error checking or pulling model '{self.model}': {e}")
+            raise RuntimeError(f"Model '{self.model}' is not available and could not be pulled.")
+
+
     def call_model(self, prompt):
+        self.check_and_pull_model()
         self.log(f"Calling Ollama model '{self.model}' with prompt...")
         if self.streaming:
             try:

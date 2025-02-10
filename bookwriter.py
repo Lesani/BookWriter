@@ -5,7 +5,12 @@ import json
 import re
 import logging
 import time  # Add this import for tracking time
+import shutil  # Add this import for copying files
 from colorama import Fore, Style
+
+# Check if config.py exists, if not copy from config.sample.py
+if not os.path.exists("config.py"):
+    shutil.copy("config.sample.py", "config.py")
 
 from config import PROMPTS, SETTINGS, MODELS, MODELS_FAST, DB_FILE, CHAPTER_LENGTHS
 from utils import setup_logging
@@ -20,6 +25,9 @@ from database import (
     get_incomplete_projects,
     get_chapter_count
 )
+
+# Suppress httpx logging messages
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 def sanitize_filename(output_filename, replacement="_"):
     invalid_chars = r'[<>:"/\\|?*\x00-\x1F]'
@@ -148,6 +156,10 @@ class BookWriter:
                                             debug=debug,
                                             model=models["expansion_agent"],
                                             streaming=streaming, step_by_step=step_by_step)
+        self.cleaner_agent = GenericAgent(PROMPTS["cleaner_agent"], "CleanerAgent",
+                                          debug=debug,
+                                          model=models["cleaner_agent"],
+                                          streaming=streaming, step_by_step=step_by_step)
 
     def parse_outline(self, outline_text):
         # This regex matches headings like:
@@ -285,13 +297,14 @@ class BookWriter:
 
             # Generate chapter if not already drafted.
             if (chapter is None):
-                print(f"{Fore.GREEN}Step 5: Generating Chapter {idx} of {total - (1 if has_epilogue else 0)}.{Style.RESET_ALL}")
+                print(f"{Fore.GREEN}Step 5: Generating Chapter {idx} of {total}.{Style.RESET_ALL}")
                 chapter = self.chapter_agent.run(
                     previous_chapter=final_chapters[-1] if final_chapters else "No previous chapter.",
                     outline=chapter_outline,
                     description=description,
                     characters=characters,
                     global_summary=global_summary,
+                    chapter_length=chapter_length,
                     final_chapter=final_chapter,
                     chapter_number=idx,
                     total_chapters=total
@@ -302,10 +315,14 @@ class BookWriter:
                 chapter = self.revision_agent.run(chapter=chapter,
                                                   global_summary=global_summary,
                                                   outline=chapter_outline)
-            
+            # Clean the chapter
+            print(f"{Fore.YELLOW}Cleaning Chapter {idx}...{Style.RESET_ALL}")
+            chapter = self.cleaner_agent.run(chapter=chapter, outline=chapter_outline, chapter_number=idx, total_chapters=total)
+
             # Check word count and expand if necessary
             chapter_word_count = len(chapter.split())
             if chapter_word_count < expected_word_count * 0.8:
+                print(f"{Fore.RED}Chapter {idx} is too short ({chapter_word_count} words, requires {expected_word_count} words).{Style.RESET_ALL}")
                 print(f"{Fore.YELLOW}Expanding Chapter {idx} to meet word count requirements...{Style.RESET_ALL}")
                 chapter = self.expansion_agent.run(
                     chapter=chapter,
@@ -314,10 +331,16 @@ class BookWriter:
                     current_length=chapter_word_count,
                     target_length=expected_word_count
                 )
+                
+                print(f"{Fore.CYAN}Revision after expansion:{Style.RESET_ALL}")
                 chapter = self.revision_agent.run(chapter=chapter,
                                                   global_summary=global_summary,
                                                   outline=chapter_outline)
+                
+                print(f"{Fore.CYAN}Cleaning after expansion:{Style.RESET_ALL}")
+                chapter = self.cleaner_agent.run(chapter=chapter, outline=chapter_outline, chapter_number=idx, total_chapters=total)
 
+            print(f"{Fore.CYAN}Committing Chapter {idx} to final chapters...{Style.RESET_ALL}")
             final_chapters.append(chapter)
             if not self.streaming:
                 print(f"\n{Fore.CYAN}Draft for Chapter {idx}:{Style.RESET_ALL}\n{chapter}\n")
