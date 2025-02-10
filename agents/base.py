@@ -4,11 +4,10 @@ from config import MODELS
 from colorama import Style
 
 class BaseAgent:
-    def __init__(self, prompt_template, name="BaseAgent", debug=False, verbosity=1, model=None, streaming=False, step_by_step=False):
+    def __init__(self, prompt_template, name="BaseAgent", debug=False, model=None, streaming=False, step_by_step=False):
         self.prompt_template = prompt_template
         self.name = name
         self.debug = debug
-        self.verbosity = verbosity
         self.streaming = streaming
         self.step_by_step = step_by_step
         # Use the provided model override or fallback to the default model from config.

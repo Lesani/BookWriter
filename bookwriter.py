@@ -7,7 +7,7 @@ import logging
 import time  # Add this import for tracking time
 from colorama import Fore, Style
 
-from config import PROMPTS, SETTINGS, MODELS, DB_FILE, CHAPTER_LENGTHS
+from config import PROMPTS, SETTINGS, MODELS, MODELS_FAST, DB_FILE, CHAPTER_LENGTHS
 from utils import setup_logging
 from agents.generic_agent import GenericAgent
 from database import (
@@ -99,50 +99,55 @@ def write_output_files(output_filename, final_book, final_markdown, summary):
         print(f"Error writing final markdown: {e}")
 
 class BookWriter:
-    def __init__(self, debug=False, verbosity=1, streaming=False, step_by_step=False):
+    def __init__(self, debug=False, streaming=False, step_by_step=False, fast=False):
         self.debug = debug
-        self.verbosity = verbosity
         self.streaming = streaming
         self.step_by_step = step_by_step
         self.logger = logging.getLogger("BookWriter")
 
+        models = MODELS_FAST if fast else MODELS
+
         # New workflow agents:
         self.global_story_agent = GenericAgent(PROMPTS["global_story_agent"], "GlobalStoryAgent",
-                                                debug=debug, verbosity=verbosity,
-                                                model=MODELS["global_story_agent"],
+                                                debug=debug,
+                                                model=models["global_story_agent"],
                                                 streaming=streaming, step_by_step=step_by_step)
         self.character_agent = GenericAgent(PROMPTS["character_agent_deep"], "CharacterAgentDeep",
-                                             debug=debug, verbosity=verbosity,
-                                             model=MODELS["character_agent"],
+                                             debug=debug,
+                                             model=models["character_agent"],
                                              streaming=streaming, step_by_step=step_by_step)
         self.global_outline_agent = GenericAgent(PROMPTS["global_outline_agent"], "GlobalOutlineAgent",
-                                                  debug=debug, verbosity=verbosity,
-                                                  model=MODELS["global_outline_agent"],
+                                                  debug=debug,
+                                                  model=models["global_outline_agent"],
                                                   streaming=streaming, step_by_step=step_by_step)
         self.final_chapter_agent = GenericAgent(PROMPTS["final_chapter_agent"], "FinalChapterAgent",
-                                                 debug=debug, verbosity=verbosity,
-                                                 model=MODELS["final_chapter_agent"],
+                                                 debug=debug,
+                                                 model=models["final_chapter_agent"],
                                                  streaming=streaming, step_by_step=step_by_step)
         self.chapter_agent = GenericAgent(PROMPTS["chapter_agent"], "ChapterAgent",
-                                          debug=debug, verbosity=verbosity,
-                                          model=MODELS["chapter_agent"],
+                                          debug=debug,
+                                          model=models["chapter_agent"],
                                           streaming=streaming, step_by_step=step_by_step)
         self.revision_agent = GenericAgent(PROMPTS["revision_agent"], "RevisionAgent",
-                                           debug=debug, verbosity=verbosity,
-                                           model=MODELS["revision_agent"],
+                                           debug=debug,
+                                           model=models["revision_agent"],
                                            streaming=streaming, step_by_step=step_by_step)
         self.markdown_agent = GenericAgent(PROMPTS["markdown_agent"], "MarkdownAgent",
-                                           debug=debug, verbosity=verbosity,
-                                           model=MODELS["markdown_agent"],
+                                           debug=debug,
+                                           model=models["markdown_agent"],
                                            streaming=streaming, step_by_step=step_by_step)
         self.title_agent = GenericAgent(PROMPTS["title_agent"], "TitleAgent",
-                                        debug=debug, verbosity=verbosity,
-                                        model=MODELS["title_agent"],
+                                        debug=debug,
+                                        model=models["title_agent"],
                                         streaming=streaming, step_by_step=step_by_step)
         self.formatting_agent = GenericAgent(PROMPTS["formatting_agent"], "FormattingAgent",
-                                             debug=debug, verbosity=verbosity,
-                                             model=MODELS["formatting_agent"],
+                                             debug=debug,
+                                             model=models["formatting_agent"],
                                              streaming=streaming, step_by_step=step_by_step)
+        self.expansion_agent = GenericAgent(PROMPTS["expansion_agent"], "ExpansionAgent",
+                                            debug=debug,
+                                            model=models["expansion_agent"],
+                                            streaming=streaming, step_by_step=step_by_step)
 
     def parse_outline(self, outline_text):
         # This regex matches headings like:
@@ -178,16 +183,19 @@ class BookWriter:
 
     def run(self, input_details, db_file, project_id, output_filename, existing_outline=None):
         description = input_details["description"]
+        chapter_length = input_details.get("chapter_length", "medium")
+        expected_word_count = CHAPTER_LENGTHS.get(chapter_length, CHAPTER_LENGTHS["medium"])
 
         # Step 1: Build overall story via iterative refinement.
         print(f"{Fore.GREEN}Step 1: Building overall story concept...{Style.RESET_ALL}")
         print(f"{Fore.YELLOW}Iteration 0: Generating initial global story concept...{Style.RESET_ALL}")
-        global_summary = self.global_story_agent.run(description=description, previous_summary="")
+        characters=input_details.get("characters", "")
+        global_summary = self.global_story_agent.run(description=description, previous_summary="",characters=characters)
         if not self.streaming:
             print(f"\n{Fore.CYAN}Initial Global Story Concept:{Style.RESET_ALL}\n{global_summary}\n")
-        for iteration in range(1, 3):
+        for iteration in range(1, 2):
             print(f"{Fore.YELLOW}Iteration {iteration}: Refining global story concept...{Style.RESET_ALL}")
-            global_summary = self.global_story_agent.run(description=description, previous_summary=global_summary)
+            global_summary = self.global_story_agent.run(description=description, previous_summary=global_summary, characters=characters)
             if not self.streaming:
                 print(f"\n{Fore.CYAN}Refined Global Story Concept (Iteration {iteration}):{Style.RESET_ALL}\n{global_summary}\n")
 
@@ -197,6 +205,17 @@ class BookWriter:
                                                description=description)
         if not self.streaming:
             print(f"\n{Fore.CYAN}Defined Characters:{Style.RESET_ALL}\n{characters}\n")
+        
+        # Step 1b: Revise the global story concept based on character profiles.
+        print(f"{Fore.YELLOW}Revising global story concept based on character profiles...{Style.RESET_ALL}")
+        global_summary = self.global_story_agent.run(description=description, previous_summary=global_summary, characters=characters)
+        if not self.streaming:
+            print(f"\n{Fore.CYAN}Revised Global Story Concept:{Style.RESET_ALL}\n{global_summary}\n")
+        for iteration in range(3, 5):
+            print(f"{Fore.YELLOW}Iteration {iteration}: Refining global story concept...{Style.RESET_ALL}")
+            global_summary = self.global_story_agent.run(description=description, previous_summary=global_summary, characters=characters)
+            if not self.streaming:
+                print(f"\n{Fore.CYAN}Refined Global Story Concept (Iteration {iteration}):{Style.RESET_ALL}\n{global_summary}\n")
 
         # Step 3: Draft the final chapter first to determine the desired ending.
         print(f"{Fore.GREEN}Step 3: Drafting the final chapter to determine the ending...{Style.RESET_ALL}")
@@ -255,41 +274,50 @@ class BookWriter:
 
         final_chapters = []
         total = len(chapters_outline)
-        # Generate chapters for all chapters, including the final chapter.
-        for idx, chapter_outline in enumerate(chapters_outline, 1):
-            if idx == total:
-                print(f"{Fore.GREEN}Step 5: Revising pre-drafted final chapter for chapter {idx}.{Style.RESET_ALL}")
-                chapter = self.revision_agent.run(
-                    chapter=final_chapter,
-                    global_summary=global_summary,
-                    outline=chapter_outline
-                )
-                # Optionally, run additional revision iterations for the final chapter.
-                for iteration in range(1, 3):
-                    print(f"{Fore.YELLOW}Revising final Chapter {idx}, iteration {iteration} of 2...{Style.RESET_ALL}")
-                    chapter = self.revision_agent.run(chapter=chapter,
-                                                      global_summary=global_summary,
-                                                      outline=chapter_outline)
-                final_chapters.append(chapter)
-                continue
+        has_epilogue = any("epilogue" in ch[:20].lower() for ch in chapters_outline)
 
-            print(f"{Fore.GREEN}Step 5: Generating Chapter {idx} of {total - 1}.{Style.RESET_ALL}")
-            chapter = self.chapter_agent.run(
-                previous_chapter=final_chapters[-1] if final_chapters else "No previous chapter.",
-                outline=chapter_outline,
-                description=description,
-                characters=characters,
-                global_summary=global_summary,
-                final_chapter=final_chapter,
-                chapter_number=idx,
-                total_chapters=total
-            )
+        # Generate chapters for all chapters.
+        for idx, chapter_outline in enumerate(chapters_outline, 1):
+            chapter = None
+            # Check if this is the final chapter and replace with the drafted final chapter.
+            if (has_epilogue and idx == total-1) or (not has_epilogue and idx == total):
+                chapter=final_chapter
+
+            # Generate chapter if not already drafted.
+            if (chapter is None):
+                print(f"{Fore.GREEN}Step 5: Generating Chapter {idx} of {total - (1 if has_epilogue else 0)}.{Style.RESET_ALL}")
+                chapter = self.chapter_agent.run(
+                    previous_chapter=final_chapters[-1] if final_chapters else "No previous chapter.",
+                    outline=chapter_outline,
+                    description=description,
+                    characters=characters,
+                    global_summary=global_summary,
+                    final_chapter=final_chapter,
+                    chapter_number=idx,
+                    total_chapters=total
+                )
             # Perform iterative revision for improved consistency.
             for iteration in range(1, 3):
                 print(f"{Fore.YELLOW}Revising Chapter {idx}, iteration {iteration} of 2...{Style.RESET_ALL}")
                 chapter = self.revision_agent.run(chapter=chapter,
                                                   global_summary=global_summary,
                                                   outline=chapter_outline)
+            
+            # Check word count and expand if necessary
+            chapter_word_count = len(chapter.split())
+            if chapter_word_count < expected_word_count * 0.8:
+                print(f"{Fore.YELLOW}Expanding Chapter {idx} to meet word count requirements...{Style.RESET_ALL}")
+                chapter = self.expansion_agent.run(
+                    chapter=chapter,
+                    global_summary=global_summary,
+                    outline=chapter_outline,
+                    current_length=chapter_word_count,
+                    target_length=expected_word_count
+                )
+                chapter = self.revision_agent.run(chapter=chapter,
+                                                  global_summary=global_summary,
+                                                  outline=chapter_outline)
+
             final_chapters.append(chapter)
             if not self.streaming:
                 print(f"\n{Fore.CYAN}Draft for Chapter {idx}:{Style.RESET_ALL}\n{chapter}\n")
@@ -317,12 +345,12 @@ class BookWriter:
 def main():
     parser = argparse.ArgumentParser(description="BookWriter: An iterative multi-agent book writing tool.")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging.")
-    parser.add_argument("--verbose", type=int, default=1, help="Verbosity level (default: 1).")
     parser.add_argument("--db-file", type=str, default=DB_FILE, help="SQLite database file.")
     parser.add_argument("--resume", action="store_true", help="Resume an existing project.")
     parser.add_argument("--stream", action="store_true", help="Stream generation output with colors.")
     parser.add_argument("--step", action="store_true", help="Enable step-by-step mode.")
     parser.add_argument("--plot", type=str, help="Path to a plot.json file with overall plot information.")
+    parser.add_argument("--fast", action="store_true", help="Use fast models for generation.")
     args = parser.parse_args()
 
     setup_logging(debug=args.debug)
@@ -334,11 +362,11 @@ def main():
     else:
         input_details, plot_dir = prompt_for_input_details()
 
-    bw_temp = BookWriter(debug=args.debug, verbosity=args.verbose, streaming=args.stream, step_by_step=args.step)
+    bw_temp = BookWriter(debug=args.debug, streaming=args.stream, step_by_step=args.step, fast=args.fast)
     project_id, existing_outline, output_filename = initialize_project(args, input_details, plot_dir, bw_temp)
     starting_chapter = get_chapter_count(args.db_file, project_id) if args.resume else 0
 
-    bw = BookWriter(debug=args.debug, verbosity=args.verbose, streaming=args.stream, step_by_step=args.step)
+    bw = BookWriter(debug=args.debug, streaming=args.stream, step_by_step=args.step, fast=args.fast)
     
     start_time = time.time()  # Start tracking time
     final_book, final_markdown, outline = bw.run(input_details, args.db_file, project_id, output_filename, existing_outline)

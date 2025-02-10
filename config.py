@@ -21,7 +21,7 @@ PROMPTS = {
     "global_story_agent": (
         "You are a global story agent. Your task is to generate a broad, high-level narrative for a book. "
         "Use the provided book description and, if given, the previous global summary to craft a cohesive narrative arc. "
-        "Variables:\n - Book Description: {description}\n - Previous Summary: {previous_summary}\n\n"
+        "Variables:\n - Book Description: {description}\n - Previous Summary: {previous_summary}\n - Main Characters: {characters}\n\n"
         "Output only a concise story concept that highlights the key themes and plot trajectory. "
         "Your output should use clear sentences and be formatted for readability."
     ),
@@ -86,6 +86,13 @@ PROMPTS = {
         "Remove any extraneous content and ensure each chapter starts with a heading formatted as '### **Chapter X: Chapter Title**' followed by a brief description.\n\n"
         "Variables:\n - Outline: {outline}\n\n"
         "Output only the reformatted outline with chapter titles and brief summaries for each chapter."
+    ),
+    "expansion_agent": (
+        "You are an expansion agent. Your task is to expand the provided chapter text without altering its structure. "
+        "Ensure that the expanded text maintains the original flow and coherence of the chapter.\n\n"
+        "Current length: {current_length}, target length: {target_length}\n\n"
+        "Variables:\n - Chapter: {chapter}\n - Global Story Summary: {global_summary}\n - Chapter Outline: {outline}\n\n"
+        "Output only the expanded chapter text. Do not add new plot points or characters, just elaborate on the existing content."
     )
 }
 
@@ -100,39 +107,36 @@ SETTINGS = {
 }
 
 
-MODELS2 = {
-    "default": "llama3.1",
-    "outline_agent": "Llama-3.1-Spellbound-StoryWriter-70b-instruct-0.4-16bit.i1-IQ4_XS",
-    "chapter_agent": "Llama-3.1-Spellbound-StoryWriter-70b-instruct-0.4-16bit.i1-IQ4_XS",
-    "feedback_agent": "llama3.1",
-    "writer_agent": "L3-SMB-Grand-STORY-F32-Ultra-Quality-16_5B-NEO-V2-D_AU-Q6_K-imat13",
-    "summary_agent": "llama3.1",
-    "overall_summary_agent": "llama3.1",
-    "character_agent": "llama3.1",
-    "title_agent": "llama3.1",
-    "markdown_agent": "llama3.1",
-    "scene_agent": "llama3.1",
-    "final_revision_agent": "Llama-3.1-Spellbound-StoryWriter-70b-instruct-0.4-16bit.i1-IQ4_XS"
+MODELS = {
+    "default": "llama3.1",  # Default model for general tasks
+    "outline_agent": "llama3.1",  # Generates a detailed outline for the book
+    "chapter_agent": "llama3.1",  # Drafts individual chapters based on the outline
+    "character_agent": "llama3.1",  # Develops detailed character profiles
+    "title_agent": "llama3.1",  # Generates a title for the book
+    "markdown_agent": "llama3.1",  # Formats text using Markdown
+    "final_revision_agent": "llama3.1",  # Performs final revisions on the text
+    "global_story_agent": "llama3.1",  # Generates a high-level narrative for the book
+    "global_outline_agent": "llama3.1",  # Creates a detailed outline linking the beginning to the end
+    "final_chapter_agent": "llama3.1",  # Crafts the final chapter of the book
+    "revision_agent": "llama3.1",  # Refines chapters for consistency and clarity
+    "formatting_agent": "llama3.1",  # Reformats the outline to ensure proper structure
+    "expansion_agent": "llama3.1"  # Expands chapters to meet word count requirements
 }
 
-MODELS = {
-    "default": "llama3.1",
-    "outline_agent": "llama3.1",
-    "chapter_agent": "llama3.1",
-    "feedback_agent": "llama3.1",
-    "writer_agent": "llama3.1",
-    "summary_agent": "llama3.1",
-    "overall_summary_agent": "llama3.1",
-    "character_agent": "llama3.1",
-    "title_agent": "llama3.1",
-    "markdown_agent": "llama3.1",
-    "scene_agent": "llama3.1",
-    "final_revision_agent": "llama3.1",
-    "global_story_agent": "llama3.1",
-    "global_outline_agent": "llama3.1",
-    "final_chapter_agent": "llama3.1",
-    "revision_agent": "llama3.1",
-    "formatting_agent": "llama3.1"
+MODELS_FAST = {
+    "default": "llama3.1",  # Default model for general tasks
+    "outline_agent": "llama3.1",  # Generates a detailed outline for the book
+    "chapter_agent": "llama3.1",  # Drafts individual chapters based on the outline
+    "character_agent": "llama3.1",  # Develops detailed character profiles
+    "title_agent": "llama3.1",  # Generates a title for the book
+    "markdown_agent": "llama3.1",  # Formats text using Markdown
+    "final_revision_agent": "llama3.1",  # Performs final revisions on the text
+    "global_story_agent": "llama3.1",  # Generates a high-level narrative for the book
+    "global_outline_agent": "llama3.1",  # Creates a detailed outline linking the beginning to the end
+    "final_chapter_agent": "llama3.1",  # Crafts the final chapter of the book
+    "revision_agent": "llama3.1",  # Refines chapters for consistency and clarity
+    "formatting_agent": "llama3.1",  # Reformats the outline to ensure proper structure
+    "expansion_agent": "llama3.1"  # Expands chapters to meet word count requirements
 }
 
 DB_FILE = "book_project_db.sqlite"
@@ -153,4 +157,5 @@ AGENT_COLORS = {
     "MarkdownAgent": Fore.LIGHTMAGENTA_EX,
     "FinalRevisionAgent": Fore.LIGHTBLUE_EX,
     "FormattingAgent": Fore.LIGHTCYAN_EX,
+    "ExpansionAgent": Fore.LIGHTCYAN_EX,
 }
