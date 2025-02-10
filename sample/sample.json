@@ -1,0 +1,39 @@
+{
+    "setting": "In the neon-lit alleys of Whisker City, crime runs rampant among the feline elite. Detective Felix Paws, a hard-boiled, trench-coat-wearing tabby, prowls the underbelly of the city, solving crimes that others are too afraid to touch.",
+    "description": "When the priceless Moonfish Jewel is stolen from the prestigious Catnip Club, all paws point to the notorious feline thief, Shadow Claw. But Detective Felix Paws isn’t convinced. With only three nights before the case goes cold, Felix must navigate a city of double-crossing alley cats, corrupt mouse informants, and a web of deception that goes all the way to the top. The deeper he digs, the more he realizes that nothing is as it seems. The real thief may be closer than he thinks—perhaps even right under his whiskers.",
+    "characters": [
+      {
+        "name": "Detective Felix Paws",
+        "age": 5,
+        "role": "Hard-boiled feline detective, protagonist",
+        "traits": ["Sharp-witted", "cynical", "loyal to justice", "loves tuna"]
+      },
+      {
+        "name": "Miss Mittens",
+        "age": 4,
+        "role": "Owner of the Catnip Club, femme fatale",
+        "traits": ["Charming", "secretive", "hides a troubled past"]
+      },
+      {
+        "name": "Shadow Claw",
+        "age": 6,
+        "role": "Notorious cat burglar, prime suspect",
+        "traits": ["Elusive", "arrogant", "leaves no paw prints behind"]
+      },
+      {
+        "name": "Officer Whiskers",
+        "age": 7,
+        "role": "Police chief of Whisker City, Felix’s reluctant ally",
+        "traits": ["By-the-book", "easily frustrated", "has a soft spot for catnip"]
+      },
+      {
+        "name": "Milo the Rat",
+        "age": 2,
+        "role": "Felix’s street informant, a rat with connections",
+        "traits": ["Sneaky", "loyal only to food", "knows everyone's secrets"]
+      }
+    ],
+    "expected_chapters": 3,
+    "chapter_length": "short"
+  }
+  

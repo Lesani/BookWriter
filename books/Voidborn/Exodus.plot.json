@@ -1,0 +1,40 @@
+{
+    "filename": "Exodus",
+    "setting": "The year is 2421. Humanity has expanded beyond the Sol system, colonizing planets under the Terran Defense Accord (TDA). A fragile peace exists between Earth and its outer colonies, with corporate-backed paramilitary groups vying for control of resource-rich exoplanets. However, the balance shatters when an unknown alien force, later called the Zeirith, launches an invasion at the edge of human-occupied space.",
+    "description": "Lieutenant Anaya Solis, a gifted quantum-field engineer, is stationed at Dartmouth Station when an alien invasion changes everything. Captured and taken aboard a massive Zeirith dreadnought, she and a handful of survivors are transported through an interdimensional gateway known as the Veil Rift. On the other side lies Zyxara-Prime, a Dyson sphere where the Zeirith reveal the true enemy—The Hollow, a cosmic force devouring entire star systems. Forced to choose between her past and a future among the Zeirith, Anaya must decide whether to fight for humanity’s return or embrace her new destiny as one of the Voidborn.",
+    "characters": [
+      {
+        "name": "Lieutenant Anaya Solis",
+        "age": 22,
+        "role": "Quantum-field engineer, protagonist",
+        "traits": ["Intelligent", "resourceful", "independent", "skeptical of authority"]
+      },
+      {
+        "name": "Commander Elias Voss",
+        "age": 37,
+        "role": "TDA Special Operations officer, war survivor",
+        "traits": ["Tactical", "disciplined", "haunted by past missions"]
+      },
+      {
+        "name": "Kaelix",
+        "age": "Unknown",
+        "role": "Zeirith scientist, liaison to humanity",
+        "traits": ["Pragmatic", "logical", "possesses deep knowledge of the Veil Rift"]
+      },
+      {
+        "name": "Dr. Evren Ryu",
+        "age": 29,
+        "role": "Human xenobiologist, specialist in first-contact protocols",
+        "traits": ["Analytical", "curious", "struggles with moral dilemmas"]
+      },
+      {
+        "name": "The Hollow",
+        "age": "Ageless",
+        "role": "Cosmic entity, devourer of realities",
+        "traits": ["Unfathomable", "relentless", "consumes entire star systems"]
+      }
+    ],
+    "expected_chapters": 18,
+    "chapter_length": "normal"
+  }
+  
