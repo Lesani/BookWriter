@@ -16,6 +16,7 @@ PROMPTS = {
         " - Global Story Summary: {global_summary}\n\n"
         " - Chapter Outline: {outline}\n"
         " - Expected Chapter Length: {chapter_length}\n\n"
+        "Use long paragraphs to maintain the flow of the chapter.\n"
         "Output only the draft chapter. Format your output in clear paragraphs. Do not include any additional comments or questions."
         "Do not incorporate any feedback at this stage. Do not ask follow-up questions."
         "Only draft the chapter content based on the provided information, do not add additional chapters or change the existing structure."
@@ -65,21 +66,22 @@ PROMPTS = {
     "revision_agent": (
         "You are a revision agent. Your task is to refine a chapter by ensuring consistency with the overall narrative and the chapter outline. "
         "Variables:\n - Draft Chapter: {chapter}\n - Global Story Summary: {global_summary}\n - Chapter Outline: {outline}\n\n"
+        "Look at the paragraph structure, character consistency, and overall coherence of the chapter. Expand paragraphs if necessary to improve clarity and detail."
         "Output only the revised chapter text. Improve structure and clarity, and format your revised chapter as clean printable text."
         "Do not add follow-up questions or comments. Do not list your changes."
     ),
     "markdown_agent": (
-        ""
         "Previous Chapter: {previous_chapter}\n\n"
         "You are a Markdown formatting agent. Your task is to lightly reformat the provided chapter text using Markdown syntax. "
         "Ensure the output follows lightweight, structured formatting for printed books.\n\n"
-        "### Formatting Guidelines:\n"
-        "- Use `#` for the book title.\n"
-        "- Use `##` for chapter titles.\n"
-        "- Use `**bold**` for emphasis and `*italic*` for thoughts.\n"
-        "no other formatting is needed.\n\n"
         "Variables:\n - Chapter: {chapter}\n\n"
-        "Output only clean Markdown-formatted text, ensuring that headings, bullet points, and paragraphs are correctly represented, but keep it simple."
+        "### Formatting Guidelines:\n"
+        "- Use `#` for the book title. if present\n"
+        "- Use `##` for chapter title.\n"
+        "- Use `**bold**` for emphasis.\n"
+        "- Use `*italic*` for thoughts.\n"
+        "Remove any other formatting\n\n"
+        "Output only clean formatted text."
         "Do not add or remove content from the chapter."
         "Do not ask follow-up questions. Do not comment on the content or list your changes."
     ),
@@ -94,7 +96,7 @@ PROMPTS = {
         "Ensure that the expanded text maintains the original flow and coherence of the chapter.\n\n"
         "Current length: {current_length}, target length: {target_length}\n\n"
         "Variables:\n - Chapter: {chapter}\n - Global Story Summary: {global_summary}\n - Chapter Outline: {outline}\n\n"
-        "Output only the expanded chapter text. Do not add new plot points or characters, just elaborate on the existing content."
+        "Output only the expanded chapter text. Do not add new plot points or characters, just elaborate on the existing content, adding a deeper level of detail to each paragraph."
     ),
     "cleaner_agent": (
         "{outline}"
@@ -115,43 +117,64 @@ CHAPTER_LENGTHS = {
 }
 
 SETTINGS = {
-    "default_chapter_length": "medium"
+    "default_chapter_length": "medium",
+    "revision_iterations": 1  # Number of times each chapter is revised
 }
 
 # Models for each agent, slow configuration for better quality
 MODELS = {
     "default": "llama3.1",  # Default model for general tasks
     "outline_agent": "llama3.1",  # Generates a detailed outline for the book
-    "chapter_agent": "llama3.1",  # Drafts individual chapters based on the outline
+    "chapter_agent": "Mistral-Small-Spellbound-StoryWriter-22B-instruct-0.2-chkpt-200-16-bit.i1-Q4_K_M",  # Drafts individual chapters based on the outline
     "character_agent": "llama3.1",  # Develops detailed character profiles
     "title_agent": "llama3.1",  # Generates a title for the book
     "markdown_agent": "llama3.1",  # Formats text using Markdown
     "final_revision_agent": "llama3.1",  # Performs final revisions on the text
     "global_story_agent": "llama3.1",  # Generates a high-level narrative for the book
     "global_outline_agent": "llama3.1",  # Creates a detailed outline linking the beginning to the end
-    "final_chapter_agent": "llama3.1",  # Crafts the final chapter of the book
-    "revision_agent": "llama3.1",  # Refines chapters for consistency and clarity
-    "formatting_agent": "phi4",  # Reformats the outline to ensure proper structure
-    "expansion_agent": "llama3.1",  # Expands chapters to meet word count requirements
-    "cleaner_agent": "phi4"  # Cleans chapters by removing extraneous content
+    "final_chapter_agent": "Mistral-Small-Spellbound-StoryWriter-22B-instruct-0.2-chkpt-200-16-bit.i1-Q4_K_M",  # Crafts the final chapter of the book
+    "revision_agent": "Mistral-Small-Spellbound-StoryWriter-22B-instruct-0.2-chkpt-200-16-bit.i1-Q4_K_M",  # Refines chapters for consistency and clarity
+    "formatting_agent": "llama3.1",  # Reformats the outline to ensure proper structure
+    "expansion_agent": "Mistral-Small-Spellbound-StoryWriter-22B-instruct-0.2-chkpt-200-16-bit.i1-Q4_K_M",  # Expands chapters to meet word count requirements
+    "cleaner_agent": "llama3.1"  # Cleans chapters by removing extraneous content
 }
 
 # Fast configuration for quicker responses/iteration
 MODELS_FAST = {
-    "default": "llama3.1",  # Default model for general tasks
-    "outline_agent": "llama3.1",  # Generates a detailed outline for the book
-    "chapter_agent": "llama3.1",  # Drafts individual chapters based on the outline
-    "character_agent": "llama3.1",  # Develops detailed character profiles
-    "title_agent": "llama3.1",  # Generates a title for the book
-    "markdown_agent": "llama3.1",  # Formats text using Markdown
-    "final_revision_agent": "llama3.1",  # Performs final revisions on the text
-    "global_story_agent": "llama3.1",  # Generates a high-level narrative for the book
-    "global_outline_agent": "llama3.1",  # Creates a detailed outline linking the beginning to the end
-    "final_chapter_agent": "llama3.1",  # Crafts the final chapter of the book
-    "revision_agent": "llama3.1",  # Refines chapters for consistency and clarity
-    "formatting_agent": "phi4",  # Reformats the outline to ensure proper structure
-    "expansion_agent": "llama3.1",  # Expands chapters to meet word count requirements
-    "cleaner_agent": "phi4"  # Cleans chapters by removing extraneous content
+    "default": "llama3.2",  # Default model for general tasks
+    "outline_agent": "llama3.2",  # Generates a detailed outline for the book
+    "chapter_agent": "llama3.2",  # Drafts individual chapters based on the outline
+    "character_agent": "llama3.2",  # Develops detailed character profiles
+    "title_agent": "llama3.2",  # Generates a title for the book
+    "markdown_agent": "llama3.2",  # Formats text using Markdown
+    "final_revision_agent": "llama3.2",  # Performs final revisions on the text
+    "global_story_agent": "llama3.2",  # Generates a high-level narrative for the book
+    "global_outline_agent": "llama3.2",  # Creates a detailed outline linking the beginning to the end
+    "final_chapter_agent": "llama3.2",  # Crafts the final chapter of the book
+    "revision_agent": "llama3.2",  # Refines chapters for consistency and clarity
+    "formatting_agent": "llama3.2",  # Reformats the outline to ensure proper structure
+    "expansion_agent": "llama3.2",  # Expands chapters to meet word count requirements
+    "cleaner_agent": "llama3.2"  # Cleans chapters by removing extraneous content
+}
+
+
+# Define custom model options for each agent (used for deviation from default settings)
+#     "temperature": 0.7,       # Controls randomness; lower values make output more deterministic
+#     "num_ctx": 2048,          # Sets the context window size
+#     "repeat_penalty": 1.2     # Penalizes repeated tokens; values >1.0 discourage repetition
+
+CUSTOM_OPTIONS = {
+    "global_story_agent": {"num_ctx": 64000},
+    "character_agent": {"num_ctx": 64000},
+    "global_outline_agent": {"num_ctx": 64000},
+    "final_chapter_agent": {"num_ctx": 64000},
+    "chapter_agent": {"num_ctx": 64000},
+    "revision_agent": {"num_ctx": 64000},
+    "markdown_agent": {"num_ctx": 64000},
+    "title_agent": {"num_ctx": 64000},
+    "formatting_agent": {"num_ctx": 64000},
+    "expansion_agent": {"num_ctx": 64000},
+    "cleaner_agent": {"num_ctx": 64000},
 }
 
 DB_FILE = "book_project_db.sqlite"

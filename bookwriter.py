@@ -12,7 +12,7 @@ from colorama import Fore, Style
 if not os.path.exists("config.py"):
     shutil.copy("config.sample.py", "config.py")
 
-from config import PROMPTS, SETTINGS, MODELS, MODELS_FAST, DB_FILE, CHAPTER_LENGTHS
+from config import PROMPTS, SETTINGS, MODELS, MODELS_FAST, DB_FILE, CHAPTER_LENGTHS, CUSTOM_OPTIONS
 from utils import setup_logging
 from agents.generic_agent import GenericAgent
 from database import (
@@ -115,51 +115,95 @@ class BookWriter:
 
         models = MODELS_FAST if fast else MODELS
 
-        # New workflow agents:
-        self.global_story_agent = GenericAgent(PROMPTS["global_story_agent"], "GlobalStoryAgent",
-                                                debug=debug,
-                                                model=models["global_story_agent"],
-                                                streaming=streaming, step_by_step=step_by_step)
-        self.character_agent = GenericAgent(PROMPTS["character_agent_deep"], "CharacterAgentDeep",
-                                             debug=debug,
-                                             model=models["character_agent"],
-                                             streaming=streaming, step_by_step=step_by_step)
-        self.global_outline_agent = GenericAgent(PROMPTS["global_outline_agent"], "GlobalOutlineAgent",
-                                                  debug=debug,
-                                                  model=models["global_outline_agent"],
-                                                  streaming=streaming, step_by_step=step_by_step)
-        self.final_chapter_agent = GenericAgent(PROMPTS["final_chapter_agent"], "FinalChapterAgent",
-                                                 debug=debug,
-                                                 model=models["final_chapter_agent"],
-                                                 streaming=streaming, step_by_step=step_by_step)
-        self.chapter_agent = GenericAgent(PROMPTS["chapter_agent"], "ChapterAgent",
-                                          debug=debug,
-                                          model=models["chapter_agent"],
-                                          streaming=streaming, step_by_step=step_by_step)
-        self.revision_agent = GenericAgent(PROMPTS["revision_agent"], "RevisionAgent",
-                                           debug=debug,
-                                           model=models["revision_agent"],
-                                           streaming=streaming, step_by_step=step_by_step)
-        self.markdown_agent = GenericAgent(PROMPTS["markdown_agent"], "MarkdownAgent",
-                                           debug=debug,
-                                           model=models["markdown_agent"],
-                                           streaming=streaming, step_by_step=step_by_step)
-        self.title_agent = GenericAgent(PROMPTS["title_agent"], "TitleAgent",
-                                        debug=debug,
-                                        model=models["title_agent"],
-                                        streaming=streaming, step_by_step=step_by_step)
-        self.formatting_agent = GenericAgent(PROMPTS["formatting_agent"], "FormattingAgent",
-                                             debug=debug,
-                                             model=models["formatting_agent"],
-                                             streaming=streaming, step_by_step=step_by_step)
-        self.expansion_agent = GenericAgent(PROMPTS["expansion_agent"], "ExpansionAgent",
-                                            debug=debug,
-                                            model=models["expansion_agent"],
-                                            streaming=streaming, step_by_step=step_by_step)
-        self.cleaner_agent = GenericAgent(PROMPTS["cleaner_agent"], "CleanerAgent",
-                                          debug=debug,
-                                          model=models["cleaner_agent"],
-                                          streaming=streaming, step_by_step=step_by_step)
+        # New workflow agents using custom options:
+        self.global_story_agent = GenericAgent(
+            PROMPTS["global_story_agent"], "GlobalStoryAgent",
+            debug=debug,
+            model=models["global_story_agent"],
+            streaming=streaming,
+            step_by_step=step_by_step,
+            options=CUSTOM_OPTIONS.get("global_story_agent", {})
+        )
+        self.character_agent = GenericAgent(
+            PROMPTS["character_agent_deep"], "CharacterAgentDeep",
+            debug=debug,
+            model=models["character_agent"],
+            streaming=streaming,
+            step_by_step=step_by_step,
+            options=CUSTOM_OPTIONS.get("character_agent", {})
+        )
+        self.global_outline_agent = GenericAgent(
+            PROMPTS["global_outline_agent"], "GlobalOutlineAgent",
+            debug=debug,
+            model=models["global_outline_agent"],
+            streaming=streaming,
+            step_by_step=step_by_step,
+            options=CUSTOM_OPTIONS.get("global_outline_agent", {})
+        )
+        self.final_chapter_agent = GenericAgent(
+            PROMPTS["final_chapter_agent"], "FinalChapterAgent",
+            debug=debug,
+            model=models["final_chapter_agent"],
+            streaming=streaming,
+            step_by_step=step_by_step,
+            options=CUSTOM_OPTIONS.get("final_chapter_agent", {})
+        )
+        self.chapter_agent = GenericAgent(
+            PROMPTS["chapter_agent"], "ChapterAgent",
+            debug=debug,
+            model=models["chapter_agent"],
+            streaming=streaming,
+            step_by_step=step_by_step,
+            options=CUSTOM_OPTIONS.get("chapter_agent", {})
+        )
+        self.revision_agent = GenericAgent(
+            PROMPTS["revision_agent"], "RevisionAgent",
+            debug=debug,
+            model=models["revision_agent"],
+            streaming=streaming,
+            step_by_step=step_by_step,
+            options=CUSTOM_OPTIONS.get("revision_agent", {})
+        )
+        self.markdown_agent = GenericAgent(
+            PROMPTS["markdown_agent"], "MarkdownAgent",
+            debug=debug,
+            model=models["markdown_agent"],
+            streaming=streaming,
+            step_by_step=step_by_step,
+            options=CUSTOM_OPTIONS.get("markdown_agent", {})
+        )
+        self.title_agent = GenericAgent(
+            PROMPTS["title_agent"], "TitleAgent",
+            debug=debug,
+            model=models["title_agent"],
+            streaming=streaming,
+            step_by_step=step_by_step,
+            options=CUSTOM_OPTIONS.get("title_agent", {})
+        )
+        self.formatting_agent = GenericAgent(
+            PROMPTS["formatting_agent"], "FormattingAgent",
+            debug=debug,
+            model=models["formatting_agent"],
+            streaming=streaming,
+            step_by_step=step_by_step,
+            options=CUSTOM_OPTIONS.get("formatting_agent", {})
+        )
+        self.expansion_agent = GenericAgent(
+            PROMPTS["expansion_agent"], "ExpansionAgent",
+            debug=debug,
+            model=models["expansion_agent"],
+            streaming=streaming,
+            step_by_step=step_by_step,
+            options=CUSTOM_OPTIONS.get("expansion_agent", {})
+        )
+        self.cleaner_agent = GenericAgent(
+            PROMPTS["cleaner_agent"], "CleanerAgent",
+            debug=debug,
+            model=models["cleaner_agent"],
+            streaming=streaming,
+            step_by_step=step_by_step,
+            options=CUSTOM_OPTIONS.get("cleaner_agent", {})
+        )
 
     def parse_outline(self, outline_text):
         # This regex matches headings like:
@@ -257,11 +301,15 @@ class BookWriter:
             if not fb:
                 break
             print(f"{Fore.YELLOW}Updating outline based on feedback...{Style.RESET_ALL}")
-            outline = self.global_outline_agent.run(description=description,
-                                                    global_summary=global_summary,
-                                                    characters=characters,
-                                                    final_chapter=final_chapter,
-                                                    outline_feedback=fb)
+            outline = self.global_outline_agent.run(
+                description=description,
+                global_summary=global_summary,
+                characters=characters,
+                final_chapter=final_chapter,
+                outline_feedback=fb,
+                expected_chapters=input_details.get("expected_chapters", ""),
+                chapter_length=input_details.get("chapter_length", "")
+            )
             update_project_outline(db_file, project_id, outline)
             if not self.streaming:
                 print(f"\n{Fore.CYAN}Updated Outline:{Style.RESET_ALL}\n{outline}\n")
@@ -309,9 +357,10 @@ class BookWriter:
                     chapter_number=idx,
                     total_chapters=total
                 )
-            # Perform iterative revision for improved consistency.
-            for iteration in range(1, 3):
-                print(f"{Fore.YELLOW}Revising Chapter {idx}, iteration {iteration} of 2...{Style.RESET_ALL}")
+            # Retrieve configurable number of revision iterations from config
+            revision_iterations = SETTINGS.get("revision_iterations", 2)
+            for iteration in range(1, revision_iterations + 1):
+                print(f"{Fore.YELLOW}Revising Chapter {idx}, iteration {iteration} of {revision_iterations}...{Style.RESET_ALL}")
                 chapter = self.revision_agent.run(chapter=chapter,
                                                   global_summary=global_summary,
                                                   outline=chapter_outline)

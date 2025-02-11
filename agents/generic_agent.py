@@ -1,7 +1,9 @@
 from agents.base import BaseAgent
 
 class GenericAgent(BaseAgent):
-    def __init__(self, prompt_template, agent_name, debug=False, model=None, streaming=False, step_by_step=False):
+    def __init__(self, prompt_template, agent_name, debug=False, model=None, streaming=False, step_by_step=False, options=None):
+        # Store options without modifying base behavior (if needed in the future)
+        self.options = options or {}
         super().__init__(
             prompt_template,
             name=agent_name,
