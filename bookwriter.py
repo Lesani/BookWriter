@@ -23,7 +23,10 @@ from database import (
     save_chapter,
     update_project_status,
     get_incomplete_projects,
-    get_chapter_count
+    get_chapter_count,
+    update_project_story_details,   # new function (see database.py)
+    get_project_details,            # new function (see database.py)
+    retrieve_saved_chapter          # new function (see database.py)
 )
 
 # Suppress httpx logging messages
@@ -242,85 +245,86 @@ class BookWriter:
         chapter_length = input_details.get("chapter_length", "medium")
         expected_word_count = CHAPTER_LENGTHS.get(chapter_length, CHAPTER_LENGTHS["medium"])
 
-        # Step 1: Build overall story via iterative refinement.
-        print(f"{Fore.GREEN}Step 1: Building overall story concept...{Style.RESET_ALL}")
-        print(f"{Fore.YELLOW}Iteration 0: Generating initial global story concept...{Style.RESET_ALL}")
-        characters=input_details.get("characters", "")
-        global_summary = self.global_story_agent.run(description=description, previous_summary="",characters=characters)
-        if not self.streaming:
-            print(f"\n{Fore.CYAN}Initial Global Story Concept:{Style.RESET_ALL}\n{global_summary}\n")
-        for iteration in range(1, 2):
-            print(f"{Fore.YELLOW}Iteration {iteration}: Refining global story concept...{Style.RESET_ALL}")
+        # --- If resuming, load previously saved global details ---
+        if existing_outline:
+            print(f"{Fore.GREEN}Resuming project: loading saved story details...{Style.RESET_ALL}")
+            saved_data = get_project_details(db_file, project_id)
+            global_summary = saved_data.get("global_summary", "")
+            final_chapter = saved_data.get("final_chapter", "")
+            characters = saved_data.get("characters", input_details.get("characters", ""))
+        else:
+            # Step 1: Build overall story via iterative refinement.
+            print(f"{Fore.GREEN}Step 1: Building overall story concept...{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}Iteration 0: Generating initial global story concept...{Style.RESET_ALL}")
+            characters = input_details.get("characters", "")
+            global_summary = self.global_story_agent.run(description=description, previous_summary="", characters=characters)
+            if not self.streaming:
+                print(f"\n{Fore.CYAN}Initial Global Story Concept:{Style.RESET_ALL}\n{global_summary}\n")
+            for iteration in range(1, 2):
+                print(f"{Fore.YELLOW}Iteration {iteration}: Refining global story concept...{Style.RESET_ALL}")
+                global_summary = self.global_story_agent.run(description=description, previous_summary=global_summary, characters=characters)
+                if not self.streaming:
+                    print(f"\n{Fore.CYAN}Refined Global Story Concept (Iteration {iteration}):{Style.RESET_ALL}\n{global_summary}\n")
+            # Step 2: Generate rich character profiles.
+            print(f"{Fore.GREEN}Step 2: Generating rich character profiles...{Style.RESET_ALL}")
+            characters = self.character_agent.run(initial_characters=characters, description=description)
+            if not self.streaming:
+                print(f"\n{Fore.CYAN}Defined Characters:{Style.RESET_ALL}\n{characters}\n")
+            # Step 1b: Revise the global story concept based on character profiles.
+            print(f"{Fore.YELLOW}Revising global story concept based on character profiles...{Style.RESET_ALL}")
             global_summary = self.global_story_agent.run(description=description, previous_summary=global_summary, characters=characters)
             if not self.streaming:
-                print(f"\n{Fore.CYAN}Refined Global Story Concept (Iteration {iteration}):{Style.RESET_ALL}\n{global_summary}\n")
-
-        # Step 2: Generate rich character profiles.
-        print(f"{Fore.GREEN}Step 2: Generating rich character profiles...{Style.RESET_ALL}")
-        characters = self.character_agent.run(initial_characters=input_details.get("characters", ""),
-                                               description=description)
-        if not self.streaming:
-            print(f"\n{Fore.CYAN}Defined Characters:{Style.RESET_ALL}\n{characters}\n")
-        
-        # Step 1b: Revise the global story concept based on character profiles.
-        print(f"{Fore.YELLOW}Revising global story concept based on character profiles...{Style.RESET_ALL}")
-        global_summary = self.global_story_agent.run(description=description, previous_summary=global_summary, characters=characters)
-        if not self.streaming:
-            print(f"\n{Fore.CYAN}Revised Global Story Concept:{Style.RESET_ALL}\n{global_summary}\n")
-        for iteration in range(3, 5):
-            print(f"{Fore.YELLOW}Iteration {iteration}: Refining global story concept...{Style.RESET_ALL}")
-            global_summary = self.global_story_agent.run(description=description, previous_summary=global_summary, characters=characters)
+                print(f"\n{Fore.CYAN}Revised Global Story Concept:{Style.RESET_ALL}\n{global_summary}\n")
+            for iteration in range(3, 5):
+                print(f"{Fore.YELLOW}Iteration {iteration}: Refining global story concept...{Style.RESET_ALL}")
+                global_summary = self.global_story_agent.run(description=description, previous_summary=global_summary, characters=characters)
+                if not self.streaming:
+                    print(f"\n{Fore.CYAN}Refined Global Story Concept (Iteration {iteration}):{Style.RESET_ALL}\n{global_summary}\n")
+            # Step 3: Draft the final chapter to determine the desired ending.
+            print(f"{Fore.GREEN}Step 3: Drafting the final chapter to determine the ending...{Style.RESET_ALL}")
+            final_chapter = self.final_chapter_agent.run(description=description, global_summary=global_summary, characters=characters)
             if not self.streaming:
-                print(f"\n{Fore.CYAN}Refined Global Story Concept (Iteration {iteration}):{Style.RESET_ALL}\n{global_summary}\n")
-
-        # Step 3: Draft the final chapter first to determine the desired ending.
-        print(f"{Fore.GREEN}Step 3: Drafting the final chapter to determine the ending...{Style.RESET_ALL}")
-        final_chapter = self.final_chapter_agent.run(description=description,
-                                                     global_summary=global_summary,
-                                                     characters=characters)
-        if not self.streaming:
-            print(f"\n{Fore.CYAN}Drafted Final Chapter:{Style.RESET_ALL}\n{final_chapter}\n")
-
-        # Step 4: Generate a detailed outline linking the beginning to the final chapter.
-        print(f"{Fore.GREEN}Step 4: Generating detailed outline linking the beginning to the final chapter...{Style.RESET_ALL}")
-        outline = self.global_outline_agent.run(
-            description=description,
-            global_summary=global_summary,
-            characters=characters,
-            final_chapter=final_chapter,
-            outline_feedback="",
-            expected_chapters=input_details.get("expected_chapters", ""),
-            chapter_length=input_details.get("chapter_length", "")
-        )
-        if not self.streaming:
-            print(f"\n{Fore.CYAN}Generated Outline:{Style.RESET_ALL}\n{outline}\n")
-
-        # Allow for feedback on the outline before proceeding.
-        while True:
-            fb = input(f"{Fore.MAGENTA}Provide feedback on the outline (or press Enter if satisfied): {Style.RESET_ALL}").strip()
-            if not fb:
-                break
-            print(f"{Fore.YELLOW}Updating outline based on feedback...{Style.RESET_ALL}")
+                print(f"\n{Fore.CYAN}Drafted Final Chapter:{Style.RESET_ALL}\n{final_chapter}\n")
+            # Step 4: Generate a detailed outline.
+            print(f"{Fore.GREEN}Step 4: Generating detailed outline linking the beginning to the final chapter...{Style.RESET_ALL}")
             outline = self.global_outline_agent.run(
                 description=description,
                 global_summary=global_summary,
                 characters=characters,
                 final_chapter=final_chapter,
-                outline_feedback=fb,
+                outline_feedback="",
                 expected_chapters=input_details.get("expected_chapters", ""),
-                chapter_length=input_details.get("chapter_length", "")
+                chapter_length=chapter_length
             )
-            update_project_outline(db_file, project_id, outline)
             if not self.streaming:
-                print(f"\n{Fore.CYAN}Updated Outline:{Style.RESET_ALL}\n{outline}\n")
+                print(f"\n{Fore.CYAN}Generated Outline:{Style.RESET_ALL}\n{outline}\n")
+            # Allow for feedback on the outline.
+            while True:
+                fb = input(f"{Fore.MAGENTA}Provide feedback on the outline (or press Enter if satisfied): {Style.RESET_ALL}").strip()
+                if not fb:
+                    break
+                print(f"{Fore.YELLOW}Updating outline based on feedback...{Style.RESET_ALL}")
+                outline = self.global_outline_agent.run(
+                    description=description,
+                    global_summary=global_summary,
+                    characters=characters,
+                    final_chapter=final_chapter,
+                    outline_feedback=fb,
+                    expected_chapters=input_details.get("expected_chapters", ""),
+                    chapter_length=chapter_length
+                )
+                update_project_outline(db_file, project_id, outline)
+                if not self.streaming:
+                    print(f"\n{Fore.CYAN}Updated Outline:{Style.RESET_ALL}\n{outline}\n")
+            # Save the generated story details for future resume.
+            update_project_story_details(db_file, project_id, global_summary, final_chapter, characters)
 
-        # Reformat the outline once before detecting chapters
+        # Reformat the outline
         print(f"{Fore.YELLOW}Re-formatting the outline to remove any extraneous text...{Style.RESET_ALL}")
         outline = self.formatting_agent.run(outline=outline)
-
-        # Detect chapter amount and ask for user confirmation
         chapters_outline = self.parse_outline(outline)
-        print(f"{Fore.GREEN}Detected {len(chapters_outline)} chapters (including any epilogue or prologue if present) in the outline.{Style.RESET_ALL}")
+        print(f"{Fore.GREEN}Detected {len(chapters_outline)} chapters (including any epilogue or prologue) in the outline.{Style.RESET_ALL}")
+        # Confirm chapter count if not resuming (always allow user feedback)
         while True:
             correct_chapters = input(f"{Fore.MAGENTA}Is this correct? (yes/y/no/n): {Style.RESET_ALL}").strip().lower()
             if correct_chapters in ['yes', 'y', 'no', 'n']:
@@ -336,15 +340,22 @@ class BookWriter:
         total = len(chapters_outline)
         has_epilogue = any("epilogue" in ch[:20].lower() for ch in chapters_outline)
 
-        # Generate chapters for all chapters.
-        for idx, chapter_outline in enumerate(chapters_outline, 1):
-            chapter = None
-            # Check if this is the final chapter and replace with the drafted final chapter.
-            if (has_epilogue and idx == total-1) or (not has_epilogue and idx == total):
-                chapter=final_chapter
+        # Determine how many chapters have been saved already.
+        starting_chapter = get_chapter_count(db_file, project_id) if existing_outline else 0
 
-            # Generate chapter if not already drafted.
-            if (chapter is None):
+        # Generate chapters.
+        for idx, chapter_outline in enumerate(chapters_outline, 1):
+            # If resuming and chapter already exists, retrieve it.
+            if existing_outline and idx <= starting_chapter:
+                print(f"{Fore.GREEN}Skipping Chapter {idx} (retrieving saved version)...{Style.RESET_ALL}")
+                chapter = retrieve_saved_chapter(db_file, project_id, idx)
+                final_chapters.append(chapter)
+                continue
+
+            # For the final chapter, use the drafted final chapter.
+            if (has_epilogue and idx == total-1) or (not has_epilogue and idx == total):
+                chapter = final_chapter
+            else:
                 print(f"{Fore.GREEN}Step 5: Generating Chapter {idx} of {total}.{Style.RESET_ALL}")
                 chapter = self.chapter_agent.run(
                     previous_chapter=final_chapters[-1] if final_chapters else "No previous chapter.",
@@ -357,47 +368,27 @@ class BookWriter:
                     chapter_number=idx,
                     total_chapters=total
                 )
-            # Retrieve configurable number of revision iterations from config
             revision_iterations = SETTINGS.get("revision_iterations", 2)
             for iteration in range(1, revision_iterations + 1):
                 print(f"{Fore.YELLOW}Revising Chapter {idx}, iteration {iteration} of {revision_iterations}...{Style.RESET_ALL}")
-                chapter = self.revision_agent.run(chapter=chapter,
-                                                  global_summary=global_summary,
-                                                  outline=chapter_outline)
-            # Clean the chapter
+                chapter = self.revision_agent.run(chapter=chapter, global_summary=global_summary, outline=chapter_outline)
             print(f"{Fore.YELLOW}Cleaning Chapter {idx}...{Style.RESET_ALL}")
             chapter = self.cleaner_agent.run(chapter=chapter, outline=chapter_outline, chapter_number=idx, total_chapters=total)
-
-            # Check word count and expand if necessary
             chapter_word_count = len(chapter.split())
             if chapter_word_count < expected_word_count * 0.8:
                 print(f"{Fore.RED}Chapter {idx} is too short ({chapter_word_count} words, requires {expected_word_count} words).{Style.RESET_ALL}")
-                print(f"{Fore.YELLOW}Expanding Chapter {idx} to meet word count requirements...{Style.RESET_ALL}")
-                chapter = self.expansion_agent.run(
-                    chapter=chapter,
-                    global_summary=global_summary,
-                    outline=chapter_outline,
-                    current_length=chapter_word_count,
-                    target_length=expected_word_count
-                )
-                
-                print(f"{Fore.CYAN}Revision after expansion:{Style.RESET_ALL}")
-                chapter = self.revision_agent.run(chapter=chapter,
-                                                  global_summary=global_summary,
-                                                  outline=chapter_outline)
-                
+                print(f"{Fore.YELLOW}Expanding Chapter {idx}...{Style.RESET_ALL}")
+                chapter = self.expansion_agent.run(chapter=chapter, global_summary=global_summary, outline=chapter_outline, current_length=chapter_word_count, target_length=expected_word_count)
+                print(f"{Fore.CYAN}Revising after expansion:{Style.RESET_ALL}")
+                chapter = self.revision_agent.run(chapter=chapter, global_summary=global_summary, outline=chapter_outline)
                 print(f"{Fore.CYAN}Cleaning after expansion:{Style.RESET_ALL}")
                 chapter = self.cleaner_agent.run(chapter=chapter, outline=chapter_outline, chapter_number=idx, total_chapters=total)
-
-            print(f"{Fore.CYAN}Committing Chapter {idx} to final chapters...{Style.RESET_ALL}")
+            print(f"{Fore.CYAN}Committing Chapter {idx}...{Style.RESET_ALL}")
             final_chapters.append(chapter)
-            if not self.streaming:
-                print(f"\n{Fore.CYAN}Draft for Chapter {idx}:{Style.RESET_ALL}\n{chapter}\n")
             try:
                 save_chapter(db_file, project_id, idx, chapter_outline, chapter)
             except Exception as e:
                 print(f"{Fore.RED}Error saving chapter {idx}:{Style.RESET_ALL} {e}")
-            # Write partial book draft.
             try:
                 with open(output_filename, "w", encoding="utf-8") as f:
                     f.write(self.compile_book(outline, final_chapters))
@@ -405,7 +396,6 @@ class BookWriter:
                 print(f"{Fore.RED}Error writing partial book:{Style.RESET_ALL} {e}")
 
         final_book = self.compile_book(outline, final_chapters)
-        # After chapters have been generated:
         final_markdown_chapters = []
         for i, ch in enumerate(final_chapters):
             previous = final_markdown_chapters[i-1] if i > 0 else ""
@@ -436,15 +426,15 @@ def main():
 
     bw_temp = BookWriter(debug=args.debug, streaming=args.stream, step_by_step=args.step, fast=args.fast)
     project_id, existing_outline, output_filename = initialize_project(args, input_details, plot_dir, bw_temp)
+    # If resuming, get the count of chapters already saved.
     starting_chapter = get_chapter_count(args.db_file, project_id) if args.resume else 0
 
     bw = BookWriter(debug=args.debug, streaming=args.stream, step_by_step=args.step, fast=args.fast)
-    
-    start_time = time.time()  # Start tracking time
-    final_book, final_markdown, outline = bw.run(input_details, args.db_file, project_id, output_filename, existing_outline)
-    end_time = time.time()  # End tracking time
 
-    # Print summary
+    start_time = time.time()
+    final_book, final_markdown, outline = bw.run(input_details, args.db_file, project_id, output_filename, existing_outline)
+    end_time = time.time()
+
     chapter_count = len(bw.parse_outline(final_book))
     word_count = len(final_book.split())
     book_name = os.path.basename(output_filename).rsplit('.', 1)[0]
@@ -460,7 +450,6 @@ def main():
 
     write_output_files(output_filename, final_book, final_markdown, summary)
     update_project_status(args.db_file, project_id, "completed")
-    
     print(final_book)
     print(summary)
 

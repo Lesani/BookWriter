@@ -107,8 +107,14 @@ class BaseAgent:
                 self.logger.error(f"Error calling Ollama: {e}")
                 return ""
 
+    def estimate_tokens(self, text):
+        # very basic estimation: count whitespace-separated words
+        return len(text.split())
+
     def run(self, **kwargs):
         prompt = self.generate_prompt(**kwargs)
+        estimated = self.estimate_tokens(prompt)
+        print(f"{self.name} prompt estimated tokens: {estimated}")
         if self.step_by_step:
             print(f"\n----- {self.name} Prompt -----\n{prompt}\n------------------------------")
             input("Press Enter to send this prompt...")

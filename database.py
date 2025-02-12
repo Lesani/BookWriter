@@ -46,6 +46,16 @@ def initialize_project_schema(db_file):
     if "outline" not in column_names:
         print("Adding 'outline' column to 'projects' table.")
         cursor.execute("ALTER TABLE projects ADD COLUMN outline TEXT DEFAULT '';")
+    # New columns for resume support.
+    if "global_summary" not in column_names:
+        print("Adding 'global_summary' column to 'projects' table.")
+        cursor.execute("ALTER TABLE projects ADD COLUMN global_summary TEXT DEFAULT '';")
+    if "final_chapter" not in column_names:
+        print("Adding 'final_chapter' column to 'projects' table.")
+        cursor.execute("ALTER TABLE projects ADD COLUMN final_chapter TEXT DEFAULT '';")
+    if "characters" not in column_names:
+        print("Adding 'characters' column to 'projects' table.")
+        cursor.execute("ALTER TABLE projects ADD COLUMN characters TEXT DEFAULT '';")
 
     # Create table for chapters.
     cursor.execute("""
@@ -106,6 +116,39 @@ def update_project_outline(db_file, project_id, outline):
     conn.close()
     print(f"Project ID {project_id} outline updated.")
 
+def update_project_story_details(db_file, project_id, global_summary, final_chapter, characters):
+    """
+    Updates the project's story details.
+    """
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE projects
+        SET global_summary=?, final_chapter=?, characters=?
+        WHERE id=?
+    """, (global_summary, final_chapter, characters, project_id))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    print(f"Project ID {project_id} story details updated.")
+
+def get_project_details(db_file, project_id):
+    """
+    Returns the project's story details.
+    """
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT global_summary, final_chapter, characters
+        FROM projects WHERE id=?
+    """, (project_id,))
+    row = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    if row:
+        return {"global_summary": row[0], "final_chapter": row[1], "characters": row[2]}
+    return {}
+
 def save_chapter(db_file, project_id, chapter_number, chapter_title, content):
     """
     Inserts a new chapter record into the chapters table.
@@ -122,6 +165,26 @@ def save_chapter(db_file, project_id, chapter_number, chapter_title, content):
     conn.close()
     print(f"Chapter {chapter_number} ('{chapter_title}') saved with ID {chapter_id}.")
     return chapter_id
+
+def retrieve_saved_chapter(db_file, project_id, chapter_number):
+    """
+    Retrieves the saved content of a specific chapter for a project.
+    """
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT content FROM chapters
+        WHERE project_id=? AND chapter_number=?
+        ORDER BY id ASC
+    """, (project_id, chapter_number))
+    row = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    if row:
+        print(f"Retrieved saved Chapter {chapter_number} for project ID {project_id}.")
+        return row[0]
+    print(f"No saved content found for Chapter {chapter_number}.")
+    return ""
 
 def update_project_status(db_file, project_id, status):
     """

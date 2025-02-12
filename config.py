@@ -125,17 +125,17 @@ SETTINGS = {
 MODELS = {
     "default": "llama3.1-65k",  # Default model for general tasks
     "outline_agent": "llama3.1-65k",  # Generates a detailed outline for the book
-    "chapter_agent": "Mistral-Small-Spellbound-StoryWriter-22B-instruct-0.2-65536",  # Drafts individual chapters based on the outline
+    "chapter_agent": "Mistral-Small-Spellbound-StoryWriter-22B-instruct-0.2-16192",  # Drafts individual chapters based on the outline
     "character_agent": "llama3.1-65k",  # Develops detailed character profiles
     "title_agent": "llama3.1-65k",  # Generates a title for the book
     "markdown_agent": "llama3.1-65k",  # Formats text using Markdown
     "final_revision_agent": "llama3.1-65k",  # Performs final revisions on the text
     "global_story_agent": "llama3.1-65k",  # Generates a high-level narrative for the book
     "global_outline_agent": "llama3.1-65k",  # Creates a detailed outline linking the beginning to the end
-    "final_chapter_agent": "Mistral-Small-Spellbound-StoryWriter-22B-instruct-0.2-8096",  # Crafts the final chapter of the book
-    "revision_agent": "Mistral-Small-Spellbound-StoryWriter-22B-instruct-0.2-65536",  # Refines chapters for consistency and clarity
+    "final_chapter_agent": "Mistral-Small-Spellbound-StoryWriter-22B-instruct-0.2-16192",  # Crafts the final chapter of the book
+    "revision_agent": "Mistral-Small-Spellbound-StoryWriter-22B-instruct-0.2-16192",  # Refines chapters for consistency and clarity
     "formatting_agent": "llama3.1-65k",  # Reformats the outline to ensure proper structure
-    "expansion_agent": "Mistral-Small-Spellbound-StoryWriter-22B-instruct-0.2-65536",  # Expands chapters to meet word count requirements
+    "expansion_agent": "Mistral-Small-Spellbound-StoryWriter-22B-instruct-0.2-16192",  # Expands chapters to meet word count requirements
     "cleaner_agent": "llama3.1-65k"  # Cleans chapters by removing extraneous content
 }
 
