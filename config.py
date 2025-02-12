@@ -1,26 +1,16 @@
 # config.py
 
 PROMPTS = {
-    # Title Agent remains unchanged.
     "title_agent": (
         "You are a title generation agent. Your task is to generate a catchy and appropriate title for the book based solely on the provided book description.\n"
         "Variable:\n"
         " - Book Description: {description}\n\n"
         "Output only the title, with no additional commentary."
     ),
-    "chapter_agent": (
-        " - Previous Chapter: {previous_chapter}\n\n"
-        "You are a chapter drafting agent. Your task is to write an initial draft of chapter {chapter_number} of {total_chapters} strictly based on the following variables:\n"
-        " - Book Description: {description}\n"
-        " - Character Details: {characters}\n"
-        " - Global Story Summary: {global_summary}\n\n"
-        " - Chapter Outline: {outline}\n"
-        " - Expected Chapter Length: {chapter_length}\n\n"
-        "Use long paragraphs to maintain the flow of the chapter.\n"
-        "Output only the draft chapter. Format your output in clear paragraphs. Do not include any additional comments or questions."
-        "Do not incorporate any feedback at this stage. Do not ask follow-up questions."
-        "Only draft the chapter content based on the provided information, do not add additional chapters or change the existing structure."
-        "Chapter {chapter_number}:"
+    "character_agent_deep": (
+        "You are an in-depth character development agent. Your task is to generate detailed and consistent character profiles "
+        "based on the initial input. Variables:\n - Initial Character Descriptions: {initial_characters}\n - Book Description: {description}\n\n"
+        "Output the enriched character profiles in a concise format. Use bullet points or short paragraphs if necessary."
     ),
     "global_story_agent": (
         "You are a global story agent. Your task is to generate a broad, high-level narrative for a book. "
@@ -29,10 +19,11 @@ PROMPTS = {
         "Output only a concise story concept that highlights the key themes and plot trajectory. "
         "Your output should use clear sentences and be formatted for readability."
     ),
-    "character_agent_deep": (
-        "You are an in-depth character development agent. Your task is to generate detailed and consistent character profiles "
-        "based on the initial input. Variables:\n - Initial Character Descriptions: {initial_characters}\n - Book Description: {description}\n\n"
-        "Output the enriched character profiles in a concise format. Use bullet points or short paragraphs if necessary."
+    "final_chapter_agent": (
+        "You are an ending crafting agent. Your task is to generate a compelling final chapter for the book. "
+        "Variables:\n - Book Description: {description}\n - Global Story Summary: {global_summary}\n - Characters: {characters}\n\n"
+        "Output only the final chapter draft that provides a satisfying ending. Ensure that the chapter is formatted clearly and follows the narrative arc of the book."
+        "Do not include the chapter number or title in your output."
     ),
     "global_outline_agent": (
         "You are an outline generation agent. Your task is to create a detailed outline for the book that connects the beginning to a predetermined ending. "
@@ -57,18 +48,78 @@ PROMPTS = {
         "- Protagonist faces a major setback.\n"
         "- Supporting character provides crucial help.\n\n"
     ),
-    "final_chapter_agent": (
-        "You are an ending crafting agent. Your task is to generate a compelling final chapter for the book. "
-        "Variables:\n - Book Description: {description}\n - Global Story Summary: {global_summary}\n - Characters: {characters}\n\n"
-        "Output only the final chapter draft that provides a satisfying ending. Ensure that the chapter is formatted clearly and follows the narrative arc of the book."
-        "Do not include the chapter number or title in your output."
+    "formatting_agent": (
+        "You are a formatting agent. Your task is to reformat the provided book outline to ensure it contains only the headers and chapter descriptions. "
+        "Ensure each chapter starts with a heading formatted as '### **Chapter X: Chapter Title**' followed by a brief description.\n\n"
+        "Variables:\n - Outline: {outline}\n\n"
+        "Output only the reformatted outline with chapter titles and brief summaries for each chapter."
+        "Do not remove story content from the outline. Do not ask follow-up questions. Do not comment on the content or list your changes."
+        "Remove any additional content that is not a chapter title or description."
     ),
+    "outline_feedback_agent": (
+        "You are an outline feedback agent. Your task is to critically analyze the formatted book outline. "
+        "Evaluate if the story arc is coherent, not rushed, and if the pacing and transitions between chapters make sense. "
+        "Provide concise, actionable feedback without rewriting the outline."
+        " - Book Description: {description}\n"
+        " - Global Story Overview: {global_summary}\n\n"
+        " - Character Details: {characters}\n"
+        "\nVariable:\n - Outline: {outline}"
+    ),
+    "outline_editor_agent": (
+        "You are an outline editor agent. Your task is to receive a book outline and a piece of user feedback, "
+        "and then concisely edit only the sections specified by the feedback. Do not rewrite the entire outline; "
+        "only make minimal changes as requested. Variables:\n - Outline: {outline}\n - Feedback: {feedback}\n\n"
+        "Output only the updated outline with minimal modifications."
+        "Do not add new chapters or sections unless explicitly requested in the feedback."
+        "Do not ask follow-up questions. Do not comment on the feedback or list your changes."
+    ),
+    "chapter_agent": (
+        " - Previous Chapter: {previous_chapter}\n\n"
+        "You are a chapter drafting agent. Your task is to write an initial draft of chapter {chapter_number} of {total_chapters} strictly based on the following variables:\n"
+        " - Book Description: {description}\n"
+        " - Character Details: {characters}\n"
+        " - Global Story Overview: {global_summary}\n\n"
+        " - What happened so far: {book_summary}\n"
+        " - Chapter Outline: {outline}\n"
+        " - Expected Chapter Length: {chapter_length}\n\n"
+        "Use long paragraphs to maintain the flow of the chapter.\n"
+        "Output only the draft chapter. Format your output in clear paragraphs. Do not include any additional comments or questions."
+        "Do not incorporate any feedback at this stage. Do not ask follow-up questions."
+        "Only draft the chapter content based on the provided information, do not add additional chapters or change the existing structure."
+        "Chapter {chapter_number}:"
+    ),
+    "chapter_feedback_agent": (
+        "You are a chapter feedback agent. Your task is to critically review the provided chapter in the context of the overall global story and outline. "
+        "Evaluate key aspects including coherence, pacing, consistency, and integration with the global summary. Additionally, assess world building, "
+        "character development, dialogue, narrative tone, and overall setting. Consider how effectively the chapter establishes its environment and "
+        "advances the story in line with previous chapters and the global outline. "
+        "Variables:\n - Characters: {characters}\n - What happened in past chapters: {book_summary}\n - Chapter: {chapter}\n - Global Story Summary: {global_summary}\n - Chapter Outline: {outline}\n\n"
+        "Output only concise, actionable feedback for minimal revisions."
+    ),
+
     "revision_agent": (
         "You are a revision agent. Your task is to refine a chapter by ensuring consistency with the overall narrative and the chapter outline. "
-        "Variables:\n - Draft Chapter: {chapter}\n - Global Story Summary: {global_summary}\n - Chapter Outline: {outline}\n\n"
+        "Variables:\n - Draft Chapter: {chapter}\n - Global Story Summary: {global_summary}\n - Chapter Outline: {outline}\n - Feedback: {feedback}\n\n"
         "Look at the paragraph structure, character consistency, and overall coherence of the chapter. Expand paragraphs if necessary to improve clarity and detail."
         "Output only the revised chapter text. Improve structure and clarity, and format your revised chapter as clean printable text."
         "Do not add follow-up questions or comments. Do not list your changes."
+    ),
+    "cleaner_agent": (
+        "{outline}"
+        "You are a cleaner agent. Your task is to clean the provided chapter text by removing any extraneous comments, debugging information, or other non-chapter content. "
+        "Ensure that the cleaned text maintains the original flow and coherence of the chapter.\n\n"
+        "Chapter number {chapter_number} of {total_chapters}\n\n"
+        "Variables:\n - Chapter Text: {chapter}\n\n"
+        "Output only the cleaned chapter text. Do not add new content or alter the structure of the chapter."
+        "Correct or add the Chapter number and title if missing in the text or 'Prologue' or 'Epilogue'."
+        "Do not ask follow-up questions. Do not comment on the content or list your changes."
+    ),
+    "expansion_agent": (
+        "You are an expansion agent. Your task is to expand the provided chapter text without altering its structure. "
+        "Ensure that the expanded text maintains the original flow and coherence of the chapter.\n\n"
+        "Current length: {current_length}, target length: {target_length}\n\n"
+        "Variables:\n - Chapter: {chapter}\n - Global Story Summary: {global_summary}\n - Chapter Outline: {outline}\n\n"
+        "Output only the expanded chapter text. Do not add new plot points or characters, just elaborate on the existing content, adding a deeper level of detail to each paragraph."
     ),
     "markdown_agent": (
         "Previous Chapter: {previous_chapter}\n\n"
@@ -85,28 +136,11 @@ PROMPTS = {
         "Do not add or remove content from the chapter."
         "Do not ask follow-up questions. Do not comment on the content or list your changes."
     ),
-    "formatting_agent": (
-        "You are a formatting agent. Your task is to reformat the provided book outline to ensure it contains only the headers and chapter descriptions. "
-        "Remove any extraneous content and ensure each chapter starts with a heading formatted as '### **Chapter X: Chapter Title**' followed by a brief description.\n\n"
-        "Variables:\n - Outline: {outline}\n\n"
-        "Output only the reformatted outline with chapter titles and brief summaries for each chapter."
-    ),
-    "expansion_agent": (
-        "You are an expansion agent. Your task is to expand the provided chapter text without altering its structure. "
-        "Ensure that the expanded text maintains the original flow and coherence of the chapter.\n\n"
-        "Current length: {current_length}, target length: {target_length}\n\n"
-        "Variables:\n - Chapter: {chapter}\n - Global Story Summary: {global_summary}\n - Chapter Outline: {outline}\n\n"
-        "Output only the expanded chapter text. Do not add new plot points or characters, just elaborate on the existing content, adding a deeper level of detail to each paragraph."
-    ),
-    "cleaner_agent": (
-        "{outline}"
-        "You are a cleaner agent. Your task is to clean the provided chapter text by removing any extraneous comments, debugging information, or other non-chapter content. "
-        "Ensure that the cleaned text maintains the original flow and coherence of the chapter.\n\n"
-        "Chapter number {chapter_number} of {total_chapters}\n\n"
-        "Variables:\n - Chapter Text: {chapter}\n\n"
-        "Output only the cleaned chapter text. Do not add new content or alter the structure of the chapter."
-        "Correct or add the Chapter number and title if missing in the text or 'Prologue' or 'Epilogue'."
-        "Do not ask follow-up questions. Do not comment on the content or list your changes."
+    "summary_agent": (
+        "You are a book summary agent. Take the existing book summary and update it with the crucial facts and events from the current chapter to inform future chapters.\n"
+        "Be concise and focus on the key elements that will impact the story's progression only.\n\n"
+        "Variables:\n - Chapter: {chapter}\n - (Optional) Previous Summary: {previous_summary}\n\n"
+        "Output only the updated summary, including only the crucial facts and events."
     )
 }
 
@@ -118,7 +152,8 @@ CHAPTER_LENGTHS = {
 
 SETTINGS = {
     "default_chapter_length": "medium",
-    "revision_iterations": 1  # Number of times each chapter is revised
+    "chapter_revision_iterations": 1,  # Number of times each chapter is revised
+    "outline_feedback_iterations": 2  # Number of times the outline is revised
 }
 
 # Models for each agent, slow configuration for better quality
@@ -136,7 +171,10 @@ MODELS = {
     "revision_agent": "Mistral-Small-Spellbound-StoryWriter-22B-instruct-0.2-16192",  # Refines chapters for consistency and clarity
     "formatting_agent": "llama3.1-65k",  # Reformats the outline to ensure proper structure
     "expansion_agent": "Mistral-Small-Spellbound-StoryWriter-22B-instruct-0.2-16192",  # Expands chapters to meet word count requirements
-    "cleaner_agent": "llama3.1-65k"  # Cleans chapters by removing extraneous content
+    "cleaner_agent": "llama3.1-65k",  # Cleans chapters by removing extraneous content
+    "outline_feedback_agent": "llama3.1-65k",  # New model for outline feedback agent
+    "outline_editor_agent": "llama3.1-65k",  # New model for outline editor agent
+    "chapter_feedback_agent": "llama3.1-65k"  # New model for chapter feedback agent
 }
 
 # Fast configuration for quicker responses/iteration
@@ -154,7 +192,10 @@ MODELS_FAST = {
     "revision_agent": "llama3.2-65k",  # Refines chapters for consistency and clarity
     "formatting_agent": "llama3.2-65k",  # Reformats the outline to ensure proper structure
     "expansion_agent": "llama3.2-65k",  # Expands chapters to meet word count requirements
-    "cleaner_agent": "llama3.2-65k"  # Cleans chapters by removing extraneous content
+    "cleaner_agent": "llama3.2-65k",  # Cleans chapters by removing extraneous content
+    "outline_feedback_agent": "llama3.2-65k",  # New model for outline feedback agent in fast mode
+    "outline_editor_agent": "llama3.2-65k",  # New model for outline editor agent in fast mode
+    "chapter_feedback_agent": "llama3.2-65k"  # New model for chapter feedback agent in fast mode
 }
 
 
@@ -175,6 +216,9 @@ CUSTOM_OPTIONS = {
     "formatting_agent": {},
     "expansion_agent": {},
     "cleaner_agent": {},
+    "outline_feedback_agent": {},  # New custom options for outline feedback agent
+    "outline_editor_agent": {},  # New custom options for outline editor agent
+    "chapter_feedback_agent": {}  # New custom options for chapter feedback agent
 }
 
 DB_FILE = "book_project_db.sqlite"
@@ -197,4 +241,7 @@ AGENT_COLORS = {
     "FormattingAgent": Fore.LIGHTCYAN_EX,
     "ExpansionAgent": Fore.LIGHTCYAN_EX,
     "CleanerAgent": Fore.LIGHTCYAN_EX,
+    "OutlineFeedbackAgent": Fore.LIGHTCYAN_EX,  # New color for outline feedback agent
+    "OutlineEditorAgent": Fore.LIGHTCYAN_EX,  # New color for outline editor agent
+    "ChapterFeedbackAgent": Fore.LIGHTCYAN_EX  # New color for chapter feedback agent
 }

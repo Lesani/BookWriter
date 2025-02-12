@@ -1,8 +1,9 @@
 import logging
+import os
 from tqdm import tqdm  # Correctly import the tqdm function
 import ollama  # Uses the Ollama Python library (pip install ollama)
 from config import MODELS
-from colorama import Style
+from colorama import Style, Fore
 
 class BaseAgent:
     def __init__(self, prompt_template, name="BaseAgent", debug=False, model=None, streaming=False, step_by_step=False):
@@ -77,7 +78,8 @@ class BaseAgent:
         self.log(f"Calling Ollama model '{self.model}' with prompt...")
         if self.streaming:
             try:
-                print(f"{self.name} is streaming output...")
+                print("-" * os.get_terminal_size().columns)
+                print(f"{Fore.BLUE}{self.name}{Fore.RESET} using {Fore.BLUE}{self.model} {Fore.RESET} is streaming...\n")
                 response_stream = ollama.chat(
                     model=self.model,
                     messages=[{'role': 'user', 'content': prompt}],

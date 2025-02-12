@@ -95,6 +95,34 @@ The `CHAPTER_LENGTHS` dictionary defines the word count for short, medium, and l
 BookWriter uses the [Ollama](https://ollama.com) for model interactions. Ensure you have the Ollama installed:
 Install for your OS and pull the models you need.
 
+## Using Models with Larger Contexts
+
+For best results, use models with larger context windows. (16k+ seems to work fine) When importing such models with Ollama, create a modelfile. For example, create a file named "Modelfile" (no extension) with the following content:
+
+Modelfile:
+```
+FROM llama3.1
+PARAMETER num_ctx 64768
+```
+
+Then, import the model using:
+```
+ollama create -f Modelfile llama3.1-65k
+```
+
+"llama3.1-65k" in this case is the descriptive name that denotes that this instance will run with 64768 Tokens context window.
+Ollama will not re-download the model if a "llama3.1" already exists.
+
+Custom models can be imported by downloading a .gguf from huggingface.com and placing a modelfile next to it, then importing it the same way as shown above
+
+Modelfile:
+```
+FROM filename.gguf
+PARAMETER num_ctx 64768
+```
+
+Replace the context token amount with an appropriate amount for your model.
+
 ## Example
 
 ```sh
