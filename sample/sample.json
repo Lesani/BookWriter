@@ -1,6 +1,7 @@
 {
     "setting": "In the neon-lit alleys of Whisker City, crime runs rampant among the feline elite. Detective Felix Paws, a hard-boiled, trench-coat-wearing tabby, prowls the underbelly of the city, solving crimes that others are too afraid to touch.",
     "description": "When the priceless Moonfish Jewel is stolen from the prestigious Catnip Club, all paws point to the notorious feline thief, Shadow Claw. But Detective Felix Paws isn’t convinced. With only three nights before the case goes cold, Felix must navigate a city of double-crossing alley cats, corrupt mouse informants, and a web of deception that goes all the way to the top. The deeper he digs, the more he realizes that nothing is as it seems. The real thief may be closer than he thinks—perhaps even right under his whiskers.",
+    "style": "Noir, mystery, suspense, dark humorous, from a cat's perspective.",
     "characters": [
       {
         "name": "Detective Felix Paws",
@@ -33,7 +34,7 @@
         "traits": ["Sneaky", "loyal only to food", "knows everyone's secrets"]
       }
     ],
-    "expected_chapters": 3,
+    "expected_chapters": 6,
     "chapter_length": "short"
   }
   

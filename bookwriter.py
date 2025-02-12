@@ -4,6 +4,7 @@ import os
 import json
 import re
 import logging
+import platform
 import time  # Add this import for tracking time
 import shutil  # Add this import for copying files
 from colorama import Fore, Style
@@ -12,7 +13,7 @@ from colorama import Fore, Style
 if not os.path.exists("config.py"):
     shutil.copy("config.sample.py", "config.py")
 
-from config import PROMPTS, SETTINGS, MODELS, MODELS_FAST, DB_FILE, CHAPTER_LENGTHS, CUSTOM_OPTIONS
+from config import PROMPTS, SETTINGS, MODELS, MODELS_FAST, DB_FILE, CHAPTER_LENGTHS, CUSTOM_OPTIONS, PLAY_SOUND
 from utils import setup_logging
 from agents.generic_agent import GenericAgent
 from database import (
@@ -44,6 +45,7 @@ def load_input_details_from_plot(plot_path):
     return {
         "setting": content.get("setting", "Unknown Genre"),
         "description": content.get("description", "No description provided."),
+        "style": content.get("style", "Unknown Style"),
         "chapter_length": content.get("chapter_length", "medium"),
         "expected_chapters": int(content.get("expected_chapters", 10)),
         "characters": content.get("characters", "No character details provided.")
@@ -53,6 +55,7 @@ def prompt_for_input_details():
     print(f"{Fore.GREEN}Welcome to BookWriter!{Style.RESET_ALL}")
     setting = input("Enter the setting/genre (e.g., sci-fi, cyberpunk): ").strip()
     description = input("Enter additional book details: ").strip()
+    style = input("Enter the writing style (e.g., dark, humorous): ").strip()
     chapter_length = input("Enter desired chapter length (short/medium/long) [default: medium]: ").strip() or "medium"
     expected_chapters = input("Approximately how many chapters? (default 10): ").strip()
     try:
@@ -63,6 +66,7 @@ def prompt_for_input_details():
     return {
         "setting": setting,
         "description": description,
+        "style": style,
         "chapter_length": chapter_length,
         "expected_chapters": expected_chapters,
         "characters": characters,
@@ -77,17 +81,21 @@ def initialize_project(args, input_details, plot_dir, writer_instance):
         else:
             project = projects[0]
             project_id = project["id"]
-            output_filename = os.path.join(plot_dir, "book.txt")
-            # Return a resume_mode flag instead of existing_outline
+            saved_data = get_project_details(args.db_file, project_id)
+            output_filename = saved_data.get("output_filename")
+            if not output_filename:
+                output_filename = os.path.join(plot_dir, "book.txt")
             return project_id, True, output_filename
     # Generate a title and save project.
     title = writer_instance.title_agent.run(description=input_details["description"])
     project_name = title.strip().replace('"', '').replace("'", '')
     output_filename = os.path.join(plot_dir, f"{sanitize_filename(project_name.replace(' ', '_'))}.txt")
     project_id = save_project(args.db_file, project_name,
-                              input_details["setting"],
-                              input_details["description"],
-                              status="in_progress")
+                                input_details["setting"],
+                                input_details["description"],
+                                input_details["style"],
+                                status="in_progress",
+                                output_filename=output_filename)
     return project_id, False, output_filename
 
 def write_output_files(output_filename, final_book, final_markdown, summary):
@@ -108,6 +116,23 @@ def write_output_files(output_filename, final_book, final_markdown, summary):
         print(f"{Fore.CYAN}=== FINAL BOOK MARKDOWN SAVED TO: {md_filename} ==={Style.RESET_ALL}")
     except Exception as e:
         print(f"Error writing final markdown: {e}")
+
+def play_chime():
+    system = platform.system()
+    if system == "Windows":
+        try:
+            import winsound
+            # Play a system sound (e.g., the 'Asterisk' sound)
+            winsound.MessageBeep(winsound.MB_ICONASTERISK)
+        except ImportError:
+            print('\a')  # fallback to system beep
+    elif system == "Darwin":  # macOS
+        # Use the built-in 'Ping' sound
+        os.system("afplay /System/Library/Sounds/Ping.aiff")
+    else:  # Assume Linux
+        # Try to use paplay to play a built-in sound. Path may vary by distribution.
+        if os.system("paplay /usr/share/sounds/freedesktop/stereo/complete.oga") != 0:
+            print('\a')  # fallback to system beep
 
 class BookWriter:
     def __init__(self, debug=False, streaming=False, step_by_step=False, fast=False):
@@ -146,6 +171,16 @@ class BookWriter:
             streaming=streaming,
             step_by_step=step_by_step,
             options=CUSTOM_OPTIONS.get("global_story_agent", {})
+        )
+
+        # Global Story Feedback
+        self.global_story_feedback_agent = GenericAgent(
+            PROMPTS["global_story_feedback_agent"], "GlobalStoryFeedbackAgent",
+            debug=debug,
+            model=models["global_story_feedback_agent"],
+            streaming=streaming,
+            step_by_step=step_by_step,
+            options=CUSTOM_OPTIONS.get("global_story_feedback_agent", {})
         )
 
         # Final Chapter
@@ -258,7 +293,7 @@ class BookWriter:
         # This regex matches headings like:
         # "### **Chapter 1:" or "#### Chapter 1", "### **Epilogue", "### **Prologue", etc.
         chapter_pattern = re.compile(
-            r'^\s*#{3,}\s*\*{0,2}\s*(Chapter\s*\d+\s*:|Epilogue\s*:|Prologue\s*:?)',
+            r'^\s*#{1,3}\s*\*{0,2}\s*(Chapter\s*\d+\s*:|Epilogue\s*:|Prologue\s*:?)',
             re.IGNORECASE | re.MULTILINE
         )
         matches = list(chapter_pattern.finditer(outline_text))
@@ -288,7 +323,9 @@ class BookWriter:
 
     def run(self, input_details, db_file, project_id, output_filename, resume_mode=False):
         revision_iterations = SETTINGS.get("chapter_revision_iterations", 2)
+        setting = input_details["setting"]
         description = input_details["description"]
+        style = input_details["style"]
         chapter_length = input_details.get("chapter_length", "medium")
         expected_word_count = CHAPTER_LENGTHS.get(chapter_length, CHAPTER_LENGTHS["medium"])
 
@@ -316,13 +353,15 @@ class BookWriter:
 
         # Step: Global Story Concept (global_summary)
         if not global_summary:
+            feedback = ""
             print(f"{Fore.GREEN}Generating global story concept...{Style.RESET_ALL}")
-            global_summary = self.global_story_agent.run(description=description, previous_summary="", characters=characters)
+            global_summary = self.global_story_agent.run(setting=setting, style=style, description=description, global_summary="", characters=characters, feedback=feedback)
             if not self.streaming:
                 print(f"\n{Fore.CYAN}Initial Global Story Concept:{Style.RESET_ALL}\n{global_summary}\n")
             for iteration in range(1, 2):
+                feedback = self.global_story_feedback_agent.run(global_summary=global_summary,setting=setting, style=style, description=description, characters=characters)
                 print(f"{Fore.YELLOW}Iteration {iteration}: Refining global story concept...{Style.RESET_ALL}")
-                global_summary = self.global_story_agent.run(description=description, previous_summary=global_summary, characters=characters)
+                global_summary = self.global_story_agent.run(setting=setting, style=style, description=description, global_summary=global_summary, characters=characters, feedback=feedback)
                 if not self.streaming:
                     print(f"\n{Fore.CYAN}Refined Global Story Concept (Iteration {iteration}):{Style.RESET_ALL}\n{global_summary}\n")
             # Save updated global_summary immediately
@@ -331,7 +370,7 @@ class BookWriter:
         # Step: Final Chapter
         if not final_chapter:
             print(f"{Fore.GREEN}Drafting the final chapter to determine the ending...{Style.RESET_ALL}")
-            final_chapter = self.final_chapter_agent.run(description=description, global_summary=global_summary, characters=characters)
+            final_chapter = self.final_chapter_agent.run(description=description, global_summary=global_summary, characters=characters, expected_word_count=expected_word_count)
             if not self.streaming:
                 print(f"\n{Fore.CYAN}Drafted Final Chapter:{Style.RESET_ALL}\n{final_chapter}\n")
             # Save updated final_chapter immediately
@@ -393,9 +432,8 @@ class BookWriter:
             # Confirm chapter count if not resuming (always allow user feedback)
             while True:
                 correct_chapters = input(f"{Fore.MAGENTA}Is this correct? (yes/y/no/n): {Style.RESET_ALL}").strip().lower()
-                if correct_chapters in ['yes', 'y', 'no', 'n']:
+                if correct_chapters in ['yes', 'y']:
                     break
-                print(f"{Fore.RED}Please enter 'yes', 'y', 'no', or 'n'.{Style.RESET_ALL}")
                 if correct_chapters in ['no', 'n']:
                     print(f"{Fore.YELLOW}Re-formatting the outline...{Style.RESET_ALL}")
                     outline = self.formatting_agent.run(outline=outline)
@@ -440,7 +478,8 @@ class BookWriter:
                     chapter_length=chapter_length,
                     final_chapter=final_chapter,
                     chapter_number=idx,
-                    total_chapters=total
+                    total_chapters=total,
+                    expected_word_count=expected_word_count
                 )
             for iteration in range(1, revision_iterations + 1):
                 print(f"{Fore.YELLOW}Revising Chapter {idx}, iteration {iteration} of {revision_iterations}...{Style.RESET_ALL}")
@@ -550,6 +589,9 @@ def main():
     update_project_status(args.db_file, project_id, "completed")
     print(final_book)
     print(summary)
+
+    if (PLAY_SOUND):
+        play_chime()
 
 if __name__ == "__main__":
     main()

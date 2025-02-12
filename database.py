@@ -33,6 +33,7 @@ def initialize_project_schema(db_file):
         project_name TEXT NOT NULL,
         setting TEXT,
         description TEXT,
+        style TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     """)
@@ -61,6 +62,9 @@ def initialize_project_schema(db_file):
     if "book_summary" not in column_names:
         print(f"{Fore.YELLOW}Adding 'book_summary' column to 'projects' table.{Style.RESET_ALL}")
         cursor.execute("ALTER TABLE projects ADD COLUMN book_summary TEXT DEFAULT '';")
+    if "output_filename" not in column_names:
+        print(f"{Fore.YELLOW}Adding 'output_filename' column to 'projects' table.{Style.RESET_ALL}")
+        cursor.execute("ALTER TABLE projects ADD COLUMN output_filename TEXT DEFAULT '';")
 
     # Create table for chapters.
     cursor.execute("""
@@ -92,16 +96,16 @@ def initialize_project_schema(db_file):
     conn.close()
     print(f"{Fore.GREEN}Schema initialized successfully in SQLite database '{db_file}'.{Style.RESET_ALL}")
 
-def save_project(db_file, project_name, setting, description, status="in_progress"):
+def save_project(db_file, project_name, setting, description, style, status="in_progress", output_filename=""):
     """
     Inserts a new project record into the projects table and returns the project ID.
     """
     conn = sqlite3.connect(db_file)
     cursor = conn.cursor()
     cursor.execute("""
-        INSERT INTO projects (project_name, setting, description, status)
-        VALUES (?, ?, ?, ?)
-    """, (project_name, setting, description, status))
+        INSERT INTO projects (project_name, setting, description, style, status, output_filename)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (project_name, setting, description, style, status, output_filename))
     conn.commit()
     project_id = cursor.lastrowid
     cursor.close()
@@ -144,14 +148,26 @@ def get_project_details(db_file, project_id):
     conn = sqlite3.connect(db_file)
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT global_summary, final_chapter, characters, book_summary
+        SELECT id, project_name, setting, description, style, status, output_filename, global_summary, final_chapter, characters, book_summary
         FROM projects WHERE id=?
     """, (project_id,))
     row = cursor.fetchone()
     cursor.close()
     conn.close()
     if row:
-        return {"global_summary": row[0], "final_chapter": row[1], "characters": row[2], "book_summary": row[3]}
+        return {
+            "id": row[0],
+            "project_name": row[1],
+            "setting": row[2],
+            "description": row[3],
+            "style": row[4],
+            "status": row[5],
+            "output_filename": row[6],
+            "global_summary": row[7],
+            "final_chapter": row[8],
+            "characters": row[9],
+            "book_summary": row[10]
+        }
     return {}
 
 def get_project_outline(db_file, project_id):
@@ -223,7 +239,7 @@ def get_incomplete_projects(db_file):
     # Set the row factory to produce dict-like rows
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    cursor.execute("SELECT id, project_name, setting, description, status, outline FROM projects WHERE status='in_progress'")
+    cursor.execute("SELECT id, project_name, setting, description, style, status, outline FROM projects WHERE status='in_progress'")
     projects = [dict(row) for row in cursor.fetchall()]  # Convert rows to dictionaries
     cursor.close()
     conn.close()
@@ -235,7 +251,7 @@ def get_project_by_id(db_file, project_id):
     """
     conn = sqlite3.connect(db_file)
     cursor = conn.cursor()
-    cursor.execute("SELECT id, project_name, setting, description, status, outline FROM projects WHERE id=?", (project_id,))
+    cursor.execute("SELECT id, project_name, setting, description, style, status, outline FROM projects WHERE id=?", (project_id,))
     project = cursor.fetchone()
     cursor.close()
     conn.close()

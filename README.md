@@ -126,8 +126,12 @@ Replace the context token amount with an appropriate amount for your model.
 ## Example
 
 ```sh
-python bookwriter.py --debug --plot path/to/plot.json --fast
+python bookwriter.py --stream --plot sample/sample.json
 ```
+
+Models used in example generation (see config.py)
+https://huggingface.co/mradermacher/Mistral-Small-Spellbound-StoryWriter-22B-instruct-0.2-chkpt-200-16-bit-i1-GGUF
+https://ollama.com/library/llama3.1
 
 ## License
 
