@@ -9,6 +9,8 @@ import time  # Add this import for tracking time
 import shutil  # Add this import for copying files
 from colorama import Fore, Style
 
+
+
 # Check if config.py exists, if not copy from config.sample.py
 if not os.path.exists("config.py"):
     shutil.copy("config.sample.py", "config.py")
@@ -79,7 +81,19 @@ def initialize_project(args, input_details, plot_dir, writer_instance):
             print("No incomplete projects found. Starting a new project.")
             args.resume = False
         else:
-            project = projects[0]
+            print(f"{Fore.CYAN}Incomplete Projects:{Style.RESET_ALL}")
+            for idx, proj in enumerate(projects, start=1):
+                chapter_count = get_chapter_count(args.db_file, proj["id"])
+                print(f"{idx}. ID: {proj['id']}, Name: {proj['project_name']}, Chapters: {chapter_count}")
+            selection = input("Enter the number of the project to resume: ").strip()
+            try:
+                sel = int(selection) - 1
+                if sel < 0 or sel >= len(projects):
+                    raise ValueError
+            except ValueError:
+                print("Invalid selection. Exiting resume mode.")
+                exit(1)
+            project = projects[sel]
             project_id = project["id"]
             saved_data = get_project_details(args.db_file, project_id)
             output_filename = saved_data.get("output_filename")
@@ -163,6 +177,16 @@ class BookWriter:
             options=CUSTOM_OPTIONS.get("character_agent", {})
         )
 
+        # Character update agent
+        self.character_sheet_updater_agent = GenericAgent(
+            PROMPTS["character_sheet_updater_agent"], "CharacterSheetUpdaterAgent",
+            debug=debug,
+            model=models["character_sheet_updater_agent"],
+            streaming=streaming,
+            step_by_step=step_by_step,
+            options=CUSTOM_OPTIONS.get("character_sheet_updater_agent", {})
+        )
+
         # Global Story
         self.global_story_agent = GenericAgent(
             PROMPTS["global_story_agent"], "GlobalStoryAgent",
@@ -243,6 +267,14 @@ class BookWriter:
             streaming=streaming,
             step_by_step=step_by_step,
             options=CUSTOM_OPTIONS.get("chapter_feedback_agent", {})
+        )
+        self.character_consistency_agent = GenericAgent(
+            PROMPTS["character_consistency_agent"], "CharacterConsistencyAgent",
+            debug=debug,
+            model=models["character_consistency_agent"],
+            streaming=streaming,
+            step_by_step=step_by_step,
+            options=CUSTOM_OPTIONS.get("character_consistency_agent", {})
         )
         self.revision_agent = GenericAgent(
             PROMPTS["revision_agent"], "RevisionAgent",
@@ -454,6 +486,8 @@ class BookWriter:
         # Determine how many chapters have been saved already.
         starting_chapter = get_chapter_count(db_file, project_id) if resume_mode else 0
 
+        book = ""
+
         # Generate chapters.
         for idx, chapter_outline in enumerate(chapters_outline, 1):
             # If resuming and chapter already exists, retrieve it.
@@ -485,7 +519,9 @@ class BookWriter:
                 print(f"{Fore.YELLOW}Revising Chapter {idx}, iteration {iteration} of {revision_iterations}...{Style.RESET_ALL}")
                 # Use chapter feedback agent to get critical review.
                 print(f"{Fore.YELLOW}Reviewing Chapter {idx} with critical feedback...{Style.RESET_ALL}")
-                feedback = self.chapter_feedback_agent.run(chapter=chapter, global_summary=global_summary, outline=chapter_outline, book_summary=book_summary, characters=characters)
+                feedback = "Chapter feedback:\n" + self.chapter_feedback_agent.run(chapter=chapter, global_summary=global_summary, outline=chapter_outline, book_summary=book_summary, characters=characters) + "\n\n"
+                print(f"{Fore.YELLOW}Reviewing Chapter {idx} for character consistency...{Style.RESET_ALL}")
+                feedback += "Character feedback:\n" + self.character_consistency_agent.run(book=book, chapter=chapter, characters=characters)
                 # Incorporate the feedback with one additional revision.
                 print(f"{Fore.YELLOW}Revising Chapter {idx} based on feedback...{Style.RESET_ALL}")
                 chapter = self.revision_agent.run(chapter=chapter, global_summary=global_summary, outline=chapter_outline, feedback=feedback)
@@ -502,7 +538,9 @@ class BookWriter:
                 chapter = self.expansion_agent.run(chapter=chapter, global_summary=global_summary, outline=chapter_outline, current_length=chapter_word_count, target_length=expected_word_count)
                 # Review the expanded chapter.
                 print(f"{Fore.YELLOW}Reviewing Chapter {idx} with critical feedback...{Style.RESET_ALL}")
-                feedback = self.chapter_feedback_agent.run(chapter=chapter, global_summary=global_summary, outline=chapter_outline, book_summary=book_summary, characters=characters)
+                feedback = "Chapter feedback:\n" + self.chapter_feedback_agent.run(chapter=chapter, global_summary=global_summary, outline=chapter_outline, book_summary=book_summary, characters=characters) + "\n\n"
+                print(f"{Fore.YELLOW}Reviewing Chapter {idx} for character consistency...{Style.RESET_ALL}")
+                feedback += "Character feedback:\n" + self.character_consistency_agent.run(book=book, chapter=chapter, characters=characters)
                 # Incorporate the feedback with one additional revision.
                 print(f"{Fore.CYAN}Revising after expansion:{Style.RESET_ALL}")
                 chapter = self.revision_agent.run(chapter=chapter, global_summary=global_summary, outline=chapter_outline, feedback=feedback)
@@ -510,7 +548,6 @@ class BookWriter:
                 print(f"{Fore.CYAN}Cleaning after expansion:{Style.RESET_ALL}")
                 chapter = self.cleaner_agent.run(chapter=chapter, outline=chapter_outline, chapter_number=idx, total_chapters=total)
 
-            print(f"{Fore.CYAN}Committing Chapter {idx}...{Style.RESET_ALL}")
             final_chapters.append(chapter)
             if not self.streaming:
                 print(f"{Fore.MAGENTA}Chapter {idx} ({chapter_word_count} words):{Style.RESET_ALL}\n{chapter}")
@@ -521,6 +558,15 @@ class BookWriter:
             if not self.streaming:
                 print(f"{Fore.MAGENTA}Updated Book Summary:{Style.RESET_ALL} {book_summary}")
 
+            # Update characters
+            print(f"{Fore.YELLOW}Updating character details...{Style.RESET_ALL}")
+            characters = self.character_sheet_updater_agent.run(book=book, chapter=chapter, characters=characters)
+            if not self.streaming:
+                print(f"{Fore.MAGENTA}Updated Characters:{Style.RESET_ALL}\n{characters}")
+
+            book += f"\n{chapter}\n"
+
+            print(f"{Fore.CYAN}Committing Chapter {idx}...{Style.RESET_ALL}")
             try:
                 save_chapter(db_file, project_id, idx, chapter_outline, chapter)
                 update_project_story_details(db_file, project_id, global_summary, final_chapter, characters, book_summary)

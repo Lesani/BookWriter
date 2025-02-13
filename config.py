@@ -105,7 +105,29 @@ PROMPTS = {
         "Variables:\n - Characters: {characters}\n - What happened in past chapters: {book_summary}\n - Chapter: {chapter}\n - Global Story Summary: {global_summary}\n - Chapter Outline: {outline}\n\n"
         "Output only concise, actionable feedback for minimal revisions."
     ),
-
+    "character_consistency_agent": (
+        "The book so far: {book}\n\n"
+        "You are a character consistency agent. Your task is to ensure that the characters in the chapter are consistent with the established character profiles and the previous chapters above. "
+        "Review the chapter and the character profiles to identify any discrepancies or inconsistencies in behavior, dialogue, or actions. "
+        "Take into account the characters' personalities, motivations, and relationships to maintain continuity throughout the story. "
+        "Variables:\n - Base Character Profiles: {characters}\n - Chapter: {chapter}\n\n"
+        "Concentrate on the chapter at hand and write identified inconsistencies and recommended corrections. Focus on character behavior, dialogue, and actions."
+        "Do not focus too much on their age or physical appearance unless it directly affects the story."
+        "DO NOT suggest revisions to the Base Character Profiles."
+        "DO NOT suggest revisions for previous chapters or the global story summary."
+    ),
+    "character_sheet_updater_agent": (
+        "The book so far: {book}\n\n"
+        "You are a character sheet updater agent. Your task is to update the character sheets based on the provided chapter."
+        "Review the chapter to identify any essential new information or developments related to the characters. "
+        "Include any changes in relationships, motivations, or key events that impact the characters' profiles. "
+        "For each character add an event memory section if not already present."
+        "Add Memories such as who they met and what they did in the chapter as a concise summary."
+        "Variables:\n - Characters: {characters}\n - Chapter: {chapter}\n\n"
+        "Write the full character profiles with the updated information. Include any new details or changes to the characters' profiles or memories."
+        "Summarize their interactions, decisions, and any significant events from the chapter."
+        "Do not ask follow-up questions. Do not comment on the content or list your changes."
+    ),
     "revision_agent": (
         "You are a revision agent. Your task is to refine a chapter by ensuring consistency with the overall narrative and the chapter outline. "
         "Variables:\n - Draft Chapter: {chapter}\n - Global Story Summary: {global_summary}\n - Chapter Outline: {outline}\n - Feedback: {feedback}\n\n"
@@ -185,7 +207,9 @@ MODELS = {
     "cleaner_agent": "llama3.1-65k",  # Cleans chapters by removing extraneous content
     "outline_feedback_agent": "llama3.1-65k",  # New model for outline feedback agent
     "outline_editor_agent": "llama3.1-65k",  # New model for outline editor agent
-    "chapter_feedback_agent": "llama3.1-65k"  # New model for chapter feedback agent
+    "chapter_feedback_agent": "llama3.1-65k",  # New model for chapter feedback agent
+    "character_consistency_agent": "llama3.1-131072",  # New model for character consistency agent
+    "character_sheet_updater_agent": "llama3.1-65k"  # New model for character sheet updater agent
 }
 
 # Fast configuration for quicker responses/iteration
@@ -207,7 +231,9 @@ MODELS_FAST = {
     "cleaner_agent": "llama3.2-65k",  # Cleans chapters by removing extraneous content
     "outline_feedback_agent": "llama3.2-65k",  # New model for outline feedback agent in fast mode
     "outline_editor_agent": "llama3.2-65k",  # New model for outline editor agent in fast mode
-    "chapter_feedback_agent": "llama3.2-65k"  # New model for chapter feedback agent in fast mode
+    "chapter_feedback_agent": "llama3.2-65k",  # New model for chapter feedback agent in fast mode
+    "character_consistency_agent": "llama3.2-65k",  # New model for character consistency agent in fast mode
+    "character_sheet_updater_agent": "llama3.2-65k"  # New model for character sheet updater agent in fast mode
 }
 
 
@@ -230,7 +256,9 @@ CUSTOM_OPTIONS = {
     "cleaner_agent": {},
     "outline_feedback_agent": {},  # New custom options for outline feedback agent
     "outline_editor_agent": {},  # New custom options for outline editor agent
-    "chapter_feedback_agent": {}  # New custom options for chapter feedback agent
+    "chapter_feedback_agent": {},  # New custom options for chapter feedback agent
+    "character_consistency_agent": {},  # New custom options for character consistency agent
+    "character_sheet_updater_agent": {}  # New custom options for character sheet updater agent
 }
 
 DB_FILE = "book_project_db.sqlite"
@@ -255,7 +283,9 @@ AGENT_COLORS = {
     "CleanerAgent": Fore.LIGHTCYAN_EX,
     "OutlineFeedbackAgent": Fore.LIGHTCYAN_EX,  # New color for outline feedback agent
     "OutlineEditorAgent": Fore.LIGHTCYAN_EX,  # New color for outline editor agent
-    "ChapterFeedbackAgent": Fore.LIGHTCYAN_EX  # New color for chapter feedback agent
+    "ChapterFeedbackAgent": Fore.LIGHTCYAN_EX,  # New color for chapter feedback agent
+    "CharacterConsistencyAgent": Fore.LIGHTCYAN_EX,  # New color for character consistency agent
+    "CharacterSheetUpdaterAgent": Fore.LIGHTCYAN_EX  # New color for character sheet updater agent
 }
 
 # Set to True to enable sound notification at the end of the generation process
