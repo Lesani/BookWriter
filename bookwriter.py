@@ -564,7 +564,7 @@ class BookWriter:
             if not self.streaming:
                 print(f"{Fore.MAGENTA}Updated Characters:{Style.RESET_ALL}\n{characters}")
 
-            book += f"\n{chapter}\n"
+            book += f"\nChapter {idx}\n{chapter}\n"
 
             print(f"{Fore.CYAN}Committing Chapter {idx}...{Style.RESET_ALL}")
             try:

@@ -113,6 +113,8 @@ PROMPTS = {
         "Variables:\n - Base Character Profiles: {characters}\n - Chapter: {chapter}\n\n"
         "Concentrate on the chapter at hand and write identified inconsistencies and recommended corrections. Focus on character behavior, dialogue, and actions."
         "Do not focus too much on their age or physical appearance unless it directly affects the story."
+        "Ignore minor inconsistencies and focus on significant deviations from the established character profiles."
+        "Ignore characters not present in the chapter."
         "DO NOT suggest revisions to the Base Character Profiles."
         "DO NOT suggest revisions for previous chapters or the global story summary."
     ),
