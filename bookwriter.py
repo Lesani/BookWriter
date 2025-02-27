@@ -445,14 +445,14 @@ class BookWriter:
             feedback = ""
             print(f"{Fore.GREEN}Generating global story concept...{Style.RESET_ALL}")
             global_summary = self.global_story_agent.run(setting=setting, style=style, description=description, global_summary="", characters=characters, feedback=feedback,
-                    expected_chapters=expected_chapters, themes=themes, plot_structure=plot_structure)
+                    expected_chapters=expected_chapters, themes=themes, plot_structure=plot_structure, title=input_details.get("title", ""))
             if not self.streaming:
                 print(f"\n{Fore.CYAN}Initial Global Story Concept:{Style.RESET_ALL}\n{global_summary}\n")
             for iteration in range(1, 2):
                 feedback = self.global_story_feedback_agent.run(global_summary=global_summary,setting=setting, style=style, description=description, characters=characters, themes=themes, plot_structure=plot_structure)
                 print(f"{Fore.YELLOW}Iteration {iteration}: Refining global story concept...{Style.RESET_ALL}")
                 global_summary = self.global_story_agent.run(setting=setting, style=style, description=description, global_summary=global_summary, characters=characters, feedback=feedback,
-                    expected_chapters=expected_chapters, themes=themes, plot_structure=plot_structure)
+                    expected_chapters=expected_chapters, themes=themes, plot_structure=plot_structure, title=input_details.get("title", ""))
                 if not self.streaming:
                     print(f"\n{Fore.CYAN}Refined Global Story Concept (Iteration {iteration}):{Style.RESET_ALL}\n{global_summary}\n")
             # Save updated global_summary immediately
