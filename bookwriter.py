@@ -8,7 +8,8 @@ import platform
 import time  # Add this import for tracking time
 import shutil  # Add this import for copying files
 from colorama import Fore, Style
-
+import ebooklib
+from ebooklib import epub
 
 
 # Check if config.py exists, if not copy from config.sample.py
@@ -56,7 +57,7 @@ def load_input_details_from_plot(plot_path):
 def prompt_for_input_details():
     print(f"{Fore.GREEN}Welcome to BookWriter!{Style.RESET_ALL}")
     setting = input("Enter the setting/genre (e.g., sci-fi, cyberpunk): ").strip()
-    description = input("Enter additional book details: ").strip()
+    description = input("Enter additional book details:").strip()
     style = input("Enter the writing style (e.g., dark, humorous): ").strip()
     chapter_length = input("Enter desired chapter length (short/medium/long) [default: medium]: ").strip() or "medium"
     expected_chapters = input("Approximately how many chapters? (default 10): ").strip()
@@ -64,7 +65,7 @@ def prompt_for_input_details():
         expected_chapters = int(expected_chapters) if expected_chapters else 10
     except ValueError:
         expected_chapters = 10
-    characters = input("Enter initial character details (names, traits, background): ").strip()
+    characters = input("(optional) Enter initial character details (names, traits, background): ").strip()
     return {
         "setting": setting,
         "description": description,
@@ -78,8 +79,8 @@ def initialize_project(args, input_details, plot_dir, writer_instance):
     if args.resume:
         projects = get_incomplete_projects(args.db_file)
         if not projects:
-            print("No incomplete projects found. Starting a new project.")
-            args.resume = False
+            print("No incomplete projects found. Exiting.")
+            exit(1)
         else:
             print(f"{Fore.CYAN}Incomplete Projects:{Style.RESET_ALL}")
             for idx, proj in enumerate(projects, start=1):
@@ -100,17 +101,12 @@ def initialize_project(args, input_details, plot_dir, writer_instance):
             if not output_filename:
                 output_filename = os.path.join(plot_dir, "book.txt")
             return project_id, True, output_filename
-    # Generate a title and save project.
-    title = writer_instance.title_agent.run(description=input_details["description"])
-    project_name = title.strip().replace('"', '').replace("'", '')
+
+    # New project case – don't create the DB entry yet.
+    # Assume that the title has already been generated and stored in input_details.
+    project_name = input_details["title"].strip().replace('"', '').replace("'", '')
     output_filename = os.path.join(plot_dir, f"{sanitize_filename(project_name.replace(' ', '_'))}.txt")
-    project_id = save_project(args.db_file, project_name,
-                                input_details["setting"],
-                                input_details["description"],
-                                input_details["style"],
-                                status="in_progress",
-                                output_filename=output_filename)
-    return project_id, False, output_filename
+    return None, False, output_filename
 
 def write_output_files(output_filename, final_book, final_markdown, summary):
     ansi_escape = re.compile(r'(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]')
@@ -130,6 +126,49 @@ def write_output_files(output_filename, final_book, final_markdown, summary):
         print(f"{Fore.CYAN}=== FINAL BOOK MARKDOWN SAVED TO: {md_filename} ==={Style.RESET_ALL}")
     except Exception as e:
         print(f"Error writing final markdown: {e}")
+
+    epub_filename = f"{base}.epub"
+    try:
+        book = epub.EpubBook()
+        book.set_identifier('id123456')
+        book.set_title('My Book')
+        book.set_language('en')
+        book.add_author('Author Name')
+
+        # Add summary as the first chapter
+        c1 = epub.EpubHtml(title='Summary', file_name='summary.xhtml', lang='en')
+        c1.content = f"<h1>Summary</h1><p>{summary}</p>"
+        book.add_item(c1)
+
+        # Add chapters
+        chapters = final_book.split('\nChapter ')
+        for i, chapter in enumerate(chapters):
+            if chapter.strip():
+                c = epub.EpubHtml(title=f'Chapter {i+1}', file_name=f'chap_{i+1}.xhtml', lang='en')
+                c.content = f"<h1>Chapter {i+1}</h1><p>{chapter}</p>"
+                book.add_item(c)
+
+        # Define Table Of Contents
+        book.toc = (epub.Link('summary.xhtml', 'Summary', 'summary'),
+                    (epub.Section('Chapters'), tuple(epub.Link(f'chap_{i+1}.xhtml', f'Chapter {i+1}', f'chap_{i+1}') for i in range(len(chapters)))))
+
+        # Add default NCX and Nav files
+        book.add_item(epub.EpubNcx())
+        book.add_item(epub.EpubNav())
+
+        # Define CSS style
+        style = 'BODY {color: white;}'
+        nav_css = epub.EpubItem(uid="style_nav", file_name="style/nav.css", media_type="text/css", content=style)
+        book.add_item(nav_css)
+
+        # Create spine
+        book.spine = ['nav', c1] + [book.get_item_with_id(f'chap_{i+1}') for i in range(len(chapters))]
+
+        # Write to the file
+        epub.write_epub(epub_filename, book, {})
+        print(f"{Fore.CYAN}=== FINAL BOOK EPUB SAVED TO: {epub_filename} ==={Style.RESET_ALL}")
+    except Exception as e:
+        print(f"Error writing EPUB: {e}")
 
 def play_chime():
     system = platform.system()
@@ -226,6 +265,14 @@ class BookWriter:
             step_by_step=step_by_step,
             options=CUSTOM_OPTIONS.get("global_outline_agent", {})
         )
+        self.global_outline_expansion_agent = GenericAgent(
+            PROMPTS["global_outline_expansion_agent"], "GlobalOutlineExpansionAgent",
+            debug=debug,
+            model=models["global_outline_expansion_agent"],
+            streaming=streaming,
+            step_by_step=step_by_step,
+            options=CUSTOM_OPTIONS.get("global_outline_expansion_agent", {})
+        )
         self.formatting_agent = GenericAgent(
             PROMPTS["formatting_agent"], "FormattingAgent",
             debug=debug,
@@ -250,7 +297,14 @@ class BookWriter:
             step_by_step=step_by_step,
             options=CUSTOM_OPTIONS.get("outline_feedback_agent", {})
         )
-
+        self.pacing_check_agent = GenericAgent(
+            PROMPTS["pacing_check_agent"], "PacingCheckAgent",
+            debug=debug,
+            model=models["outline_feedback_agent"],
+            streaming=streaming,
+            step_by_step=step_by_step,
+            options=CUSTOM_OPTIONS.get("pacing_check_agent", {})
+        )
         # Chapter Generation and Revision
         self.chapter_agent = GenericAgent(
             PROMPTS["chapter_agent"], "ChapterAgent",
@@ -358,8 +412,11 @@ class BookWriter:
         setting = input_details["setting"]
         description = input_details["description"]
         style = input_details["style"]
+        themes = input_details.get("themes", "")
+        plot_structure = input_details.get("plot_structure", "")
         chapter_length = input_details.get("chapter_length", "medium")
         expected_word_count = CHAPTER_LENGTHS.get(chapter_length, CHAPTER_LENGTHS["medium"])
+        expected_chapters=input_details.get("expected_chapters", ""),
 
         if resume_mode:
             saved_data = get_project_details(db_file, project_id)
@@ -387,13 +444,15 @@ class BookWriter:
         if not global_summary:
             feedback = ""
             print(f"{Fore.GREEN}Generating global story concept...{Style.RESET_ALL}")
-            global_summary = self.global_story_agent.run(setting=setting, style=style, description=description, global_summary="", characters=characters, feedback=feedback)
+            global_summary = self.global_story_agent.run(setting=setting, style=style, description=description, global_summary="", characters=characters, feedback=feedback,
+                    expected_chapters=expected_chapters, themes=themes, plot_structure=plot_structure)
             if not self.streaming:
                 print(f"\n{Fore.CYAN}Initial Global Story Concept:{Style.RESET_ALL}\n{global_summary}\n")
             for iteration in range(1, 2):
-                feedback = self.global_story_feedback_agent.run(global_summary=global_summary,setting=setting, style=style, description=description, characters=characters)
+                feedback = self.global_story_feedback_agent.run(global_summary=global_summary,setting=setting, style=style, description=description, characters=characters, themes=themes, plot_structure=plot_structure)
                 print(f"{Fore.YELLOW}Iteration {iteration}: Refining global story concept...{Style.RESET_ALL}")
-                global_summary = self.global_story_agent.run(setting=setting, style=style, description=description, global_summary=global_summary, characters=characters, feedback=feedback)
+                global_summary = self.global_story_agent.run(setting=setting, style=style, description=description, global_summary=global_summary, characters=characters, feedback=feedback,
+                    expected_chapters=expected_chapters, themes=themes, plot_structure=plot_structure)
                 if not self.streaming:
                     print(f"\n{Fore.CYAN}Refined Global Story Concept (Iteration {iteration}):{Style.RESET_ALL}\n{global_summary}\n")
             # Save updated global_summary immediately
@@ -402,7 +461,7 @@ class BookWriter:
         # Step: Final Chapter
         if not final_chapter:
             print(f"{Fore.GREEN}Drafting the final chapter to determine the ending...{Style.RESET_ALL}")
-            final_chapter = self.final_chapter_agent.run(description=description, global_summary=global_summary, characters=characters, expected_word_count=expected_word_count)
+            final_chapter = self.final_chapter_agent.run(description=description, global_summary=global_summary, characters=characters, expected_word_count=expected_word_count, themes=themes, plot_structure=plot_structure)
             if not self.streaming:
                 print(f"\n{Fore.CYAN}Drafted Final Chapter:{Style.RESET_ALL}\n{final_chapter}\n")
             # Save updated final_chapter immediately
@@ -421,19 +480,18 @@ class BookWriter:
                     characters=characters,
                     final_chapter=final_chapter,
                     outline_feedback=feedback,
-                    expected_chapters=input_details.get("expected_chapters", ""),
-                    chapter_length=chapter_length
+                    expected_chapters=expected_chapters,
+                    chapter_length=chapter_length,
+                    themes=themes,
+                    plot_structure=plot_structure
                 )
+                
+                print(f"{Fore.YELLOW}Expanding outline...{Style.RESET_ALL}")
+                outline = self.global_outline_expansion_agent.run(outline=outline, description=description, global_summary=global_summary, characters=characters, final_chapter=final_chapter, themes=themes, plot_structure=plot_structure)
+                
                 if not self.streaming:
                     print(f"\n{Fore.CYAN}Generated Outline:{Style.RESET_ALL}\n{outline}\n")
                 
-
-                # Reformat the outline
-                print(f"{Fore.YELLOW}Re-formatting the outline to remove any extraneous text...{Style.RESET_ALL}")
-                outline = self.formatting_agent.run(
-                    outline=outline
-                )
-
                 if iteration < outline_revisions:
                     # Analyze the formatted outline using the outline feedback agent.
                     print(f"{Fore.GREEN}Analyzing outline for story coherence...{Style.RESET_ALL}")
@@ -441,8 +499,22 @@ class BookWriter:
                         outline=outline,
                         description=description,
                         global_summary=global_summary,
-                        characters=characters
+                        characters=characters,
+                        themes=themes,
+                        plot_structure=plot_structure
                     )
+
+            # Add after the outline is generated but before user feedback
+            print(f"{Fore.GREEN}Checking outline for proper pacing...{Style.RESET_ALL}")
+            pacing_feedback = self.pacing_check_agent.run(outline=outline)
+            if not self.streaming:
+                print(f"\n{Fore.YELLOW}Pacing Analysis:{Style.RESET_ALL}\n{pacing_feedback}\n")
+
+            # Apply pacing feedback automatically
+            print(f"{Fore.YELLOW}Adjusting outline based on pacing analysis...{Style.RESET_ALL}")
+            outline = self.outline_editor_agent.run(outline=outline, feedback=pacing_feedback)
+            if not self.streaming:
+                print(f"\n{Fore.CYAN}Pacing-Adjusted Outline:{Style.RESET_ALL}\n{outline}\n")
 
             # Update the outline based on concise user feedback using the Outline Editor Agent.
             while True:
@@ -471,7 +543,17 @@ class BookWriter:
                     outline = self.formatting_agent.run(outline=outline)
                     chapters_outline = self.parse_outline(outline)
                     print(f"{Fore.GREEN}Re-detected {len(chapters_outline)} chapters in the outline.{Style.RESET_ALL}")
-                
+
+            # For new projects, create the DB entry only after outline acceptance.
+            if not resume_mode and project_id is None:
+                project_id = save_project(db_file,
+                                        input_details["title"].strip(),
+                                        input_details["setting"],
+                                        input_details["description"],
+                                        input_details["style"],
+                                        status="in_progress",
+                                        output_filename=output_filename)
+
             update_project_outline(db_file, project_id, outline)
 
         
@@ -501,9 +583,12 @@ class BookWriter:
             if (has_epilogue and idx == total-1) or (not has_epilogue and idx == total):
                 chapter = final_chapter
             else:
+                # last 250 characters of the previous chapter
+                previous_chapter_end = final_chapters[-1][-250:] if final_chapters else ""
+
                 print(f"{Fore.GREEN}Step 5: Generating Chapter {idx} of {total}.{Style.RESET_ALL}")
                 chapter = self.chapter_agent.run(
-                    previous_chapter=final_chapters[-1] if final_chapters else "No previous chapter.",
+                    previous_chapter_end=previous_chapter_end,
                     outline=chapter_outline,
                     description=description,
                     characters=characters,
@@ -515,13 +600,22 @@ class BookWriter:
                     total_chapters=total,
                     expected_word_count=expected_word_count
                 )
+
             for iteration in range(1, revision_iterations + 1):
                 print(f"{Fore.YELLOW}Revising Chapter {idx}, iteration {iteration} of {revision_iterations}...{Style.RESET_ALL}")
                 # Use chapter feedback agent to get critical review.
                 print(f"{Fore.YELLOW}Reviewing Chapter {idx} with critical feedback...{Style.RESET_ALL}")
-                feedback = "Chapter feedback:\n" + self.chapter_feedback_agent.run(chapter=chapter, global_summary=global_summary, outline=chapter_outline, book_summary=book_summary, characters=characters) + "\n\n"
+                feedback = "Chapter feedback:\n" + self.chapter_feedback_agent.run(
+                    chapter=chapter,
+                    global_summary=global_summary,
+                    outline=chapter_outline,
+                    book_summary=book_summary,
+                    characters=characters,
+                    num_chapter=idx,
+                    total_chapters=total
+                ) + "\n\n"
                 print(f"{Fore.YELLOW}Reviewing Chapter {idx} for character consistency...{Style.RESET_ALL}")
-                feedback += "Character feedback:\n" + self.character_consistency_agent.run(book=book, chapter=chapter, characters=characters)
+                feedback += "Character feedback:\n" + self.character_consistency_agent.run(book=book, chapter=chapter, characters=characters, chapter_number=idx)
                 # Incorporate the feedback with one additional revision.
                 print(f"{Fore.YELLOW}Revising Chapter {idx} based on feedback...{Style.RESET_ALL}")
                 chapter = self.revision_agent.run(chapter=chapter, global_summary=global_summary, outline=chapter_outline, feedback=feedback)
@@ -538,9 +632,11 @@ class BookWriter:
                 chapter = self.expansion_agent.run(chapter=chapter, global_summary=global_summary, outline=chapter_outline, current_length=chapter_word_count, target_length=expected_word_count)
                 # Review the expanded chapter.
                 print(f"{Fore.YELLOW}Reviewing Chapter {idx} with critical feedback...{Style.RESET_ALL}")
-                feedback = "Chapter feedback:\n" + self.chapter_feedback_agent.run(chapter=chapter, global_summary=global_summary, outline=chapter_outline, book_summary=book_summary, characters=characters) + "\n\n"
+                feedback = "Chapter feedback:\n" + self.chapter_feedback_agent.run(chapter=chapter, global_summary=global_summary, outline=chapter_outline, book_summary=book_summary, characters=characters,
+                    num_chapter=idx,
+                    total_chapters=total) + "\n\n"
                 print(f"{Fore.YELLOW}Reviewing Chapter {idx} for character consistency...{Style.RESET_ALL}")
-                feedback += "Character feedback:\n" + self.character_consistency_agent.run(book=book, chapter=chapter, characters=characters)
+                feedback += "Character feedback:\n" + self.character_consistency_agent.run(book=book, chapter=chapter, characters=characters, chapter_number=idx)
                 # Incorporate the feedback with one additional revision.
                 print(f"{Fore.CYAN}Revising after expansion:{Style.RESET_ALL}")
                 chapter = self.revision_agent.run(chapter=chapter, global_summary=global_summary, outline=chapter_outline, feedback=feedback)
@@ -587,6 +683,42 @@ class BookWriter:
         markdown_book = self.compile_markdown_book(outline, final_markdown_chapters)
         return final_book, markdown_book, outline
 
+def resume_project(args):
+    projects = get_incomplete_projects(args.db_file)
+    if not projects:
+        print(f"{Fore.YELLOW}No incomplete projects found. Starting a new project.{Style.RESET_ALL}")
+        return None, None, None, False
+    print(f"{Fore.CYAN}Incomplete Projects:{Style.RESET_ALL}")
+    for idx, proj in enumerate(projects, start=1):
+        print(f"{idx}: {proj.get('title', 'Untitled')} (ID: {proj.get('id')})")
+    while True:
+        sel = input("Enter the number of the project to resume: ").strip()
+        try:
+            sel = int(sel) - 1
+            if 0 <= sel < len(projects):
+                break
+            else:
+                print(f"{Fore.RED}Invalid selection. Try again.{Style.RESET_ALL}")
+        except ValueError:
+            print(f"{Fore.RED}Please enter a valid number.{Style.RESET_ALL}")
+    project = projects[sel]
+    project_id = project["id"]
+    saved_data = get_project_details(args.db_file, project_id)
+    output_filename = saved_data.get("output_filename")
+    # Load saved details – these should include the title and other data necessary to resume.
+    input_details = {
+        "title": saved_data.get("title", ""),
+        "setting": saved_data.get("setting", ""),
+        "description": saved_data.get("description", ""),
+        "style": saved_data.get("style", ""),
+        "chapter_length": saved_data.get("chapter_length", "medium"),
+        "expected_chapters": saved_data.get("expected_chapters", 10),
+        "characters": saved_data.get("characters", ""),
+    }
+    # Use the output file's directory as the plot_dir fallback.
+    plot_dir = os.path.dirname(output_filename) if output_filename else os.getcwd()
+    return project_id, input_details, output_filename, True
+
 def main():
     parser = argparse.ArgumentParser(description="BookWriter: An iterative multi-agent book writing tool.")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging.")
@@ -602,18 +734,28 @@ def main():
     create_project_database(args.db_file)
     initialize_project_schema(args.db_file)
 
-    if args.plot:
-        input_details, plot_dir = load_input_details_from_plot(args.plot)
-    else:
-        input_details, plot_dir = prompt_for_input_details()
-
-    bw_temp = BookWriter(debug=args.debug, streaming=args.stream, step_by_step=args.step, fast=args.fast)
-    project_id, resume_mode, output_filename = initialize_project(args, input_details, plot_dir, bw_temp)
-    # If resuming, get the count of chapters already saved.
-    starting_chapter = get_chapter_count(args.db_file, project_id) if args.resume else 0
 
     bw = BookWriter(debug=args.debug, streaming=args.stream, step_by_step=args.step, fast=args.fast)
 
+    # Determine if we are resuming an existing project.
+    resume_mode = False
+    if args.resume:
+        project_id, input_details, output_filename, resume_mode = resume_project(args)
+
+    if not resume_mode:
+        # No incomplete project found; fall back to new project inputs.
+        if args.plot:
+            input_details, plot_dir = load_input_details_from_plot(args.plot)
+        else:
+            input_details, plot_dir = prompt_for_input_details()
+        project_id = None
+        if not input_details.get("title"):
+            input_details["title"] = input("(optional) Enter the book title: ").strip()
+            if not input_details["title"]:
+                input_details["title"] = bw.title_agent.run(description=input_details["description"])
+        output_filename = os.path.join(plot_dir, f"{sanitize_filename(input_details.get('title', 'Untitled').replace(' ', '_'))}.txt")
+
+    # For new projects, the database entry will be created later (e.g. after outline approval).
     start_time = time.time()
     final_book, final_markdown, outline = bw.run(input_details, args.db_file, project_id, output_filename, resume_mode)
     end_time = time.time()
@@ -622,21 +764,25 @@ def main():
     word_count = len(final_book.split())
     book_name = os.path.basename(output_filename).rsplit('.', 1)[0]
     elapsed_time = end_time - start_time
+    elapsed_hours = int(elapsed_time // 3600)
+    elapsed_minutes = int((elapsed_time % 3600) // 60)
+    elapsed_seconds = int(elapsed_time % 60)
 
     summary = (
         f"{Fore.GREEN}=== SUMMARY ==={Style.RESET_ALL}\n"
         f"{Fore.CYAN}Book Name: {book_name}{Style.RESET_ALL}\n"
         f"{Fore.CYAN}Chapters: {chapter_count}{Style.RESET_ALL}\n"
         f"{Fore.CYAN}Word Count: {word_count}{Style.RESET_ALL}\n"
-        f"{Fore.CYAN}Time Taken: {elapsed_time:.2f} seconds{Style.RESET_ALL}"
+        f"{Fore.CYAN}Time Taken: {elapsed_hours}h {elapsed_minutes}m {elapsed_seconds}s{Style.RESET_ALL}"
     )
 
     write_output_files(output_filename, final_book, final_markdown, summary)
-    update_project_status(args.db_file, project_id, "completed")
+    if project_id:
+        update_project_status(args.db_file, project_id, "completed")
     print(final_book)
     print(summary)
 
-    if (PLAY_SOUND):
+    if PLAY_SOUND:
         play_chime()
 
 if __name__ == "__main__":

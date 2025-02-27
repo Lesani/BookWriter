@@ -2,7 +2,6 @@
 
 import sqlite3
 import os
-
 from colorama import Fore, Style
 
 def create_project_database(db_file):

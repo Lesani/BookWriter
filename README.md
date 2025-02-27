@@ -97,7 +97,8 @@ Install for your OS and pull the models you need.
 
 ## Using Models with Larger Contexts
 
-For best results, use models with larger context windows. (16k+ seems to work fine) When importing such models with Ollama, create a modelfile. For example, create a file named "Modelfile" (no extension) with the following content:
+For best results, use models with larger context windows. When importing such models with Ollama, create a modelfile. For example, create a file named "Modelfile" (no extension) with the following content:
+Suggest 8k+ tokens for the writer, and as many as you can handle for the character consistency agent
 
 Modelfile:
 ```
