@@ -5,7 +5,26 @@ PROMPTS = {
         "You are a title generation agent. Your task is to generate a catchy and appropriate title for the book based solely on the provided book description.\n"
         "Variable:\n"
         " - Book Description: {description}\n\n"
-        "Output only the title, with no additional commentary."
+        "## THINKING PHASE (analyze the following - your notes won't be included in final output):\n"
+        "1. Analyze the book description to identify genre, tone, and setting\n"
+        "2. Extract key themes, motifs, and unique elements that could be highlighted\n"
+        "3. Identify main characters or central conflicts that might inform the title\n"
+        "4. Consider metaphors or symbols that appear in the description\n"
+        "5. Brainstorm at least 5-7 potential titles using these elements:\n"
+        "   - Direct descriptive titles\n"
+        "   - Metaphorical or symbolic titles\n"
+        "   - Character-based titles\n"
+        "   - Action or conflict-based titles\n"
+        "   - Setting-based titles\n"
+        "6. Evaluate each potential title for:\n"
+        "   - Memorability and catchiness\n"
+        "   - Relevance to the story\n"
+        "   - Appropriateness for genre\n"
+        "   - Marketability and audience appeal\n"
+        "   - Uniqueness (not too generic)\n"
+        "7. Select the strongest title that best captures the essence of the book\n\n"
+        "## FINAL OUTPUT:\n"
+        "Output only the title, with no additional commentary or explanation."
     ),
     "character_agent_deep": (
         "You are an in-depth character development agent. Your task is to generate detailed and consistent character profiles "
@@ -69,6 +88,15 @@ PROMPTS = {
         "Evaluate the coherence, pacing, and overall structure of the narrative. "
         "Variables:\n - Setting: {setting}\n - Style:{style}\n - Book Description: {description}\n - Global Story Summary: {global_summary}\n - Characters: {characters}\n"
         " - Theme: {themes}\n - Plot structure: {plot_structure}\n\n"
+        "## THINKING PHASE (analyze the following - your notes won't be included in final output):\n"
+        "1. Analyze the global story summary for overall narrative arc\n"
+        "2. Check if the character arcs make sense within the proposed plot\n"
+        "3. Identify any plot holes or logical inconsistencies\n"
+        "4. Consider if the pacing appears balanced\n"
+        "5. Evaluate if the concept matches the requested setting and style\n"
+        "6. Assess if major story promises are likely to be fulfilled\n"
+        "7. Compare against the requested themes and plot structure\n\n"
+        "## FINAL OUTPUT:\n"
         "Output only concise, actionable feedback on the global story summary. Focus on areas that need improvement or clarification."
     ),
     "final_chapter_agent": (
@@ -160,8 +188,17 @@ PROMPTS = {
         "You are an outline expansion agent. Your task is to expand the provided outline to include more detailed chapter summaries. "
         "Variables:\n - Book Description: {description}\n\ - Global Story Summary: {global_summary}\n - Characters: {characters}\n - Final Chapter: {final_chapter}\n - Outline: {outline}\n"
         " - Theme: {themes}\n - Plot structure: {plot_structure}\n\n"
-        "Output only the expanded outline with more detailed chapter summaries. Maintain the existing structure and format of the outline."
-        "Do not add new chapters or change the existing structure. Do not ask follow-up questions. Do not comment on the content or list your changes."
+        "## THINKING PHASE (analyze the following - your notes won't be included in final output):\n"
+        "1. Analyze the current outline structure and formatting\n"
+        "2. Identify which chapters need more development or detail\n"
+        "3. Review the book description and global summary to ensure expanded content aligns with overall vision\n"
+        "4. Consider character arcs across chapters and how to highlight them\n"
+        "5. Examine the three-act structure and ensure key plot points receive appropriate emphasis\n"
+        "6. Plan how to balance action, dialogue, and character development in each chapter's description\n"
+        "7. Consider how thematic elements should be woven throughout the narrative\n\n"
+        "## FINAL OUTPUT:\n"
+        "Output only the expanded outline with more detailed chapter summaries. Maintain the existing structure and format of the outline.\n"
+        "Do not add new chapters or change the existing structure. Do not ask follow-up questions. Do not comment on the content or list your changes.\n"
         "It is essential to provide only the outline with chapter titles and brief summaries for each chapter in EXACTLY the following format: \n"
         "### **Chapter X: [Title]**\n"
         "for machine readability.\n\n"
@@ -183,14 +220,33 @@ PROMPTS = {
         " - Global Story Overview: {global_summary}\n\n"
         " - Character Details: {characters}\n"
         " - Theme: {themes}\n - Plot structure: {plot_structure}\n\n"
+        "## THINKING PHASE (analyze the following - your notes won't be included in final output):\n"
+        "1. Count the total chapters and identify their purpose in the narrative\n"
+        "2. Check if the three-act structure is properly implemented\n"
+        "3. Verify character introductions and development throughout\n"
+        "4. Analyze if conflicts escalate appropriately \n"
+        "5. Ensure the climax is properly positioned near the end\n"
+        "6. Check if all major plot threads are addressed\n"
+        "7. Evaluate if chapter transitions make logical sense\n\n"
+        "## FINAL OUTPUT:\n"
         "\nVariable:\n - Outline: {outline}"
     ),
     "outline_editor_agent": (
         "You are an outline editor agent. Your task is to receive a book outline and a piece of user feedback, "
         "and then concisely edit only the sections specified by the feedback. Do not rewrite the entire outline; "
         "only make minimal changes as requested. Variables:\n - Outline: {outline}\n - Feedback: {feedback}\n\n"
-        "Output only the updated outline with minimal modifications."
-        "Do not add new chapters or sections unless explicitly requested in the feedback."
+        "## THINKING PHASE (analyze the following - your notes won't be included in final output):\n"
+        "1. Analyze the feedback carefully to identify exactly which sections need changing\n"
+        "2. Review the current outline to understand its structure and content\n" 
+        "3. For each change requested in the feedback:\n"
+        "   - Identify the specific chapter(s) affected\n"
+        "   - Determine what specific elements need to be modified\n"
+        "   - Plan the minimal changes needed while preserving surrounding content\n"
+        "4. Check that proposed changes don't create inconsistencies with other chapters\n"
+        "5. Verify that chapter headings and formatting will remain consistent\n\n"
+        "## FINAL OUTPUT:\n"
+        "Output only the updated outline with minimal modifications.\n"
+        "Do not add new chapters or sections unless explicitly requested in the feedback.\n"
         "Do not ask follow-up questions. Do not comment on the feedback or list your changes."
     ),
     "chapter_agent": (
@@ -221,6 +277,16 @@ PROMPTS = {
         "character development, dialogue, narrative tone, and overall setting. Consider how effectively the chapter establishes its environment and "
         "advances the story in line with previous chapters and the global outline. "
         "Variables:\n - Characters: {characters}\n - What happened in past chapters: {book_summary}\n - Chapter ({num_chapter} of {total_chapters}): {chapter}\n - Global Story Summary: {global_summary}\n - Chapter Outline: {outline}\n\n"
+        "## THINKING PHASE (analyze the following - your notes won't be included in final output):\n"
+        "1. Compare the chapter against its outlined purpose\n"
+        "2. Evaluate how this chapter fits into the overall narrative arc\n"
+        "3. Check for character consistency with established profiles\n"
+        "4. Analyze dialogue quality and authenticity\n"
+        "5. Review pacing within the chapter\n"
+        "6. Assess world-building elements and descriptive details\n"
+        "7. Identify any continuity issues with previous chapters\n"
+        "8. Check if the chapter advances the plot appropriately\n\n"
+        "## FINAL OUTPUT:\n"
         "Output only concise, actionable feedback for minimal revisions."
     ),
     "character_consistency_agent": (
@@ -290,6 +356,20 @@ PROMPTS = {
         "Ensure that the expanded text maintains the original flow and coherence of the chapter.\n\n"
         "Current length: {current_length}, target length: {target_length}\n\n"
         "Variables:\n - Chapter: {chapter}\n - Global Story Summary: {global_summary}\n - Chapter Outline: {outline}\n\n"
+        "## THINKING PHASE (analyze the following - your notes won't be included in final output):\n"
+        "1. Identify the current paragraph structure and overall flow of the chapter\n"
+        "2. Map key scenes, dialogue sections, and descriptive passages\n"
+        "3. Calculate approximately how much expansion is needed per paragraph to reach target length\n"
+        "4. For each paragraph or section, identify opportunities for expansion:\n"
+        "   - Setting descriptions that could be enhanced with sensory details\n"
+        "   - Character actions that could be described more vividly\n"
+        "   - Dialogue that could benefit from additional body language or reactions\n"
+        "   - Emotional states that could be more deeply explored\n"
+        "   - Transitions between scenes that could be smoother\n"
+        "5. Check the chapter outline to ensure expansions align with the intended focus\n"
+        "6. Ensure any expansions maintain consistency with established character traits\n"
+        "7. Plan strategic pacing - expand slower, more important moments more than fast-paced action\n\n"
+        "## FINAL OUTPUT:\n"
         "Output only the expanded chapter text. Do not add new plot points or characters, just elaborate on the existing content, adding a deeper level of detail to each paragraph."
     ),
     "markdown_agent": (
@@ -347,32 +427,30 @@ THINKING_TOKENS = {
 # Models for each agent, slow configuration for better quality
 MODELS = {
     "default": "llama3.1-65k",  # Default model for general tasks
-    "outline_agent": "llama3.1-65k",  # Generates a detailed outline for the book
     "chapter_agent": "DSR1-Distill-Qwen-32B-Story.i1-Q4_0-16192",  # Drafts individual chapters based on the outline
     "character_agent": "DSR1-Distill-Qwen-32B-Story.i1-Q4_0-16192",  # Develops detailed character profiles
-    "title_agent": "llama3.1-65k",  # Generates a title for the book
+    "title_agent": "DSR1-Distill-Qwen-32B-Story.i1-Q4_0-16192",  # Generates a title for the book
     "markdown_agent": "llama3.1-65k",  # Formats text using Markdown
     "global_story_agent": "DSR1-Distill-Qwen-32B-Story.i1-Q4_0-16192",  # Generates a high-level narrative for the book
-    "global_story_feedback_agent": "llama3.1-65k",  # Provides feedback on the global story summary
+    "global_story_feedback_agent": "DSR1-Distill-Qwen-32B-Story.i1-Q4_0-16192",  # Provides feedback on the global story summary
     "global_outline_agent": "DSR1-Distill-Qwen-32B-Story.i1-Q4_0-16192",  # Creates a detailed outline linking the beginning to the end
     "final_chapter_agent": "DSR1-Distill-Qwen-32B-Story.i1-Q4_0-16192",  # Crafts the final chapter of the book
     "revision_agent": "DSR1-Distill-Qwen-32B-Story.i1-Q4_0-16192",  # Refines chapters for consistency and clarity
     "formatting_agent": "llama3.1-65k",  # Reformats the outline to ensure proper structure
     "expansion_agent": "DSR1-Distill-Qwen-32B-Story.i1-Q4_0-16192",  # Expands chapters to meet word count requirements
     "cleaner_agent": "llama3.1-65k",  # Cleans chapters by removing extraneous content
-    "outline_feedback_agent": "llama3.1-65k",  # New model for outline feedback agent
-    "outline_editor_agent": "llama3.1-65k",  # New model for outline editor agent
-    "chapter_feedback_agent": "llama3.1-65k",  # New model for chapter feedback agent
-    "character_consistency_agent": "llama3.1-131072",  # New model for character consistency agent
-    "character_sheet_updater_agent": "llama3.1-65k",  # New model for character sheet updater agent
-    "global_outline_expansion_agent": "DSR1-Distill-Qwen-32B-Story.i1-Q4_0-16192",  # New model for global outline expansion agent
-    "pacing_check_agent": "DSR1-Distill-Qwen-32B-Story.i1-Q4_0-16192"  # New model for pacing check agent
+    "outline_feedback_agent": "DSR1-Distill-Qwen-32B-Story.i1-Q4_0-16192",  # Feedback on outline
+    "outline_editor_agent": "DSR1-Distill-Qwen-32B-Story.i1-Q4_0-16192",  # Editor for outline based on feedback
+    "chapter_feedback_agent": "DSR1-Distill-Qwen-32B-Story.i1-Q4_0-16192",  # Feedback on chapters
+    "character_consistency_agent": "llama3.1-131072",  # Character consistency checking (keep the large context model here)
+    "character_sheet_updater_agent": "DSR1-Distill-Qwen-32B-Story.i1-Q4_0-16192",  # Updates character sheets based on chapter
+    "global_outline_expansion_agent": "DSR1-Distill-Qwen-32B-Story.i1-Q4_0-16192",  # Global outline expansion
+    "pacing_check_agent": "DSR1-Distill-Qwen-32B-Story.i1-Q4_0-16192"  # Pacing check agent
 }
 
 # Models for each agent, slow configuration for better quality
 MODELS2 = {
     "default": "llama3.1-65k",  # Default model for general tasks
-    "outline_agent": "llama3.1-65k",  # Generates a detailed outline for the book
     "chapter_agent": "Mistral-Small-Spellbound-StoryWriter-22B-instruct-0.2-16192",  # Drafts individual chapters based on the outline
     "character_agent": "llama3.1-65k",  # Develops detailed character profiles
     "title_agent": "llama3.1-65k",  # Generates a title for the book
@@ -397,7 +475,6 @@ MODELS2 = {
 # Fast configuration for quicker responses/iteration
 MODELS_FAST = {
     "default": "llama3.2-65k",  # Default model for general tasks
-    "outline_agent": "llama3.2-65k",  # Generates a detailed outline for the book
     "chapter_agent": "llama3.2-65k",  # Drafts individual chapters based on the outline
     "character_agent": "llama3.2-65k",  # Develops detailed character profiles
     "title_agent": "llama3.2-65k",  # Generates a title for the book
