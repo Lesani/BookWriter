@@ -296,7 +296,7 @@ PROMPTS = {
         "1. Gender/pronoun mismatches or changes\n"
         "2. Physical appearance discrepancies\n"
         "3. Age inconsistencies\n"
-        "4. For non-human characters (AIs, robots, aliens), any changes in their nature or presentation\n\n"
+        "4. For non-human characters (AIs, robots, aliens, animals, anthropomorphic beings), any changes in their nature or presentation\n\n"
         "Variables:\n - Base Character Profiles: {characters}\n - Chapter: {chapter}\n\n"
         "## THINKING PHASE (analyze the following - your notes won't be included in final output):\n"
         "1. Extract and list all FIXED TRAITS for each character from profiles\n"
@@ -328,7 +328,9 @@ PROMPTS = {
         "6. Compare the new information against their existing character profiles\n"
         "7. Plan how to integrate new information without contradicting established traits\n\n"
         "## FINAL OUTPUT:\n"
-        "Write the full character profiles with the updated information. Include any new details or changes to the characters' profiles or memories."
+        "Write the full character profiles including the updated information. Include any new details or changes to the characters' profiles or memories.\n"
+        "Include all their traits, backgrounds, personalities, motivations, relationships and any other important details. "
+        "Add a new section for event memories if none is present. Your writing will be the sole new character sheet."
         "Summarize their interactions, decisions, and any significant events from the chapter."
         "Do not ask follow-up questions. Do not comment on the content or list your changes."
     ),
@@ -451,7 +453,7 @@ MODELS = {
     "outline_feedback_agent": "DSR1-Distill-Qwen-32B-Story.i1-Q4_0-16192",  # Feedback on outline
     "outline_editor_agent": "DSR1-Distill-Qwen-32B-Story.i1-Q4_0-16192",  # Editor for outline based on feedback
     "chapter_feedback_agent": "DSR1-Distill-Qwen-32B-Story.i1-Q4_0-16192",  # Feedback on chapters
-    "character_consistency_agent": "llama3.1-131072",  # Character consistency checking (keep the large context model here)
+    "character_consistency_agent": "sjo/deepseek-r1-8b-llama-distill-abliterated-q8_0",  # Character consistency checking (keep the large context model here)
     "character_sheet_updater_agent": "DSR1-Distill-Qwen-32B-Story.i1-Q4_0-16192",  # Updates character sheets based on chapter
     "global_outline_expansion_agent": "DSR1-Distill-Qwen-32B-Story.i1-Q4_0-16192",  # Global outline expansion
     "pacing_check_agent": "DSR1-Distill-Qwen-32B-Story.i1-Q4_0-16192"  # Pacing check agent
@@ -460,25 +462,25 @@ MODELS = {
 # Models for each agent, slow configuration for better quality
 MODELS2 = {
     "default": "llama3.1-65k",  # Default model for general tasks
-    "chapter_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q4_K_S",  # Drafts individual chapters based on the outline
-    "character_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q4_K_S",  # Develops detailed character profiles
-    "title_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q4_K_S",  # Generates a title for the book
+    "chapter_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q6_K",  # Drafts individual chapters based on the outline
+    "character_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q6_K",  # Develops detailed character profiles
+    "title_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q6_K",  # Generates a title for the book
     "markdown_agent": "llama3.1-65k",  # Formats text using Markdown
-    "global_story_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q4_K_S",  # Generates a high-level narrative for the book
-    "global_story_feedback_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q4_K_S",  # Provides feedback on the global story summary
-    "global_outline_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q4_K_S",  # Creates a detailed outline linking the beginning to the end
-    "final_chapter_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q4_K_S",  # Crafts the final chapter of the book
-    "revision_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q4_K_S",  # Refines chapters for consistency and clarity
+    "global_story_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q6_K",  # Generates a high-level narrative for the book
+    "global_story_feedback_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q6_K",  # Provides feedback on the global story summary
+    "global_outline_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q6_K",  # Creates a detailed outline linking the beginning to the end
+    "final_chapter_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q6_K",  # Crafts the final chapter of the book
+    "revision_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q6_K",  # Refines chapters for consistency and clarity
     "formatting_agent": "llama3.1-65k",  # Reformats the outline to ensure proper structure
-    "expansion_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q4_K_S",  # Expands chapters to meet word count requirements
+    "expansion_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q6_K",  # Expands chapters to meet word count requirements
     "cleaner_agent": "llama3.1-65k",  # Cleans chapters by removing extraneous content
-    "outline_feedback_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q4_K_S",  # Feedback on outline
-    "outline_editor_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q4_K_S",  # Editor for outline based on feedback
-    "chapter_feedback_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q4_K_S",  # Feedback on chapters
-    "character_consistency_agent": "llama3.1-131072",  # Character consistency checking (keep the large context model here)
-    "character_sheet_updater_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q4_K_S",  # Updates character sheets based on chapter
-    "global_outline_expansion_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q4_K_S",  # Global outline expansion
-    "pacing_check_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q4_K_S"  # Pacing check agent
+    "outline_feedback_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q6_K",  # Feedback on outline
+    "outline_editor_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q6_K",  # Editor for outline based on feedback
+    "chapter_feedback_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q6_K",  # Feedback on chapters
+    "character_consistency_agent": "sjo/deepseek-r1-8b-llama-distill-abliterated-q8_0",  # Character consistency checking (keep the large context model here)
+    "character_sheet_updater_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q6_K",  # Updates character sheets based on chapter
+    "global_outline_expansion_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q6_K",  # Global outline expansion
+    "pacing_check_agent": "MHKetbi/DeepSeek-R1-Distill-Llama-3.1-16.5B-Brainstorm:q6_K"  # Pacing check agent
 }
 
 # Fast configuration for quicker responses/iteration
